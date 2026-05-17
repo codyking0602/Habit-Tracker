@@ -383,7 +383,7 @@ export default function MomentumOS() {
 
               <div className="mt-5 text-center">
                 <div className="text-6xl font-black tracking-tighter text-white">{score.percent}%</div>
-                <div className="mt-1 text-sm text-[#9fb7cc]">daily core momentum</div>
+                <div className="mt-1 text-sm text-[#9fb7cc]">Daily Core Momentum</div>
               </div>
 
               <div className="mt-5 grid grid-cols-3 gap-2">
