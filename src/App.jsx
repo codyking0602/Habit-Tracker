@@ -132,8 +132,8 @@ function getNextMove(day, score) {
 function getHeatClass(day) {
   const score = completionFor(day);
 
-  if (score.totalPercent >= 130) return "bg-[#b8860b] text-white";
-  if (score.core >= 110) return "bg-emerald-400/70 text-[#07111f]";
+  if (score.totalPercent >= 109) return "bg-[#b8860b] text-white";
+  if (score.core >= 95) return "bg-emerald-400/70 text-[#07111f]";
   if (score.core >= 60) return "bg-[#fb923c]/75 text-[#07111f]";
   if (day) return "bg-red-500/25 text-slate-200";
 
