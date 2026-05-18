@@ -1,13 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Activity,
-  Brain,
-  CalendarDays,
-  Check,
-  Home,
-  Sparkles,
-} from "lucide-react";
+import { Activity, Brain, CalendarDays, Check, Home, Sparkles } from "lucide-react";
 
 const CORE_SECTIONS = ["Body", "Focus", "Family", "Recovery", "Nutrition", "Mind"];
 
@@ -27,30 +20,15 @@ const CORE_HABITS = [
 ];
 
 const BONUS_HABITS = [
-  { id: "planTomorrow", label: "Plan tomorrow", points: 10 },
-  { id: "fast24", label: "24-hour fast", points: 25 },
-  { id: "sober", label: "Sober", points: 15 },
-  { id: "noSocial", label: "No social media", points: 20 },
-  { id: "completeTask", label: "Complete lingering task", points: 10 },
+  { id: "planTomorrow", label: "Plan tomorrow", points: 5 },
+  { id: "fast24", label: "24-hour fast", points: 10 },
+  { id: "sober", label: "Sober", points: 5 },
+  { id: "noSocial", label: "No social media", points: 5 },
+  { id: "completeTask", label: "Complete lingering task", points: 5 },
 ];
 
-const MAX_CORE_POINTS = CORE_HABITS.reduce((sum, h) => sum + h.points, 0);
-const STORAGE_KEY = "momentum-os-v6";
-
-const COLORS = {
-  bg: "#07111f",
-  panel: "#0d1b2a",
-  panel2: "#102338",
-  border: "#1d3a55",
-  unc: "#7BAFD4",
-  uncSoft: "rgba(123,175,212,.16)",
-  orange: "#ff8a3d",
-  orangeSoft: "rgba(255,138,61,.14)",
-  yellow: "#ffd84d",
-  yellowSoft: "rgba(255,216,77,.12)",
-  green: "#22c55e",
-  red: "#ef4444",
-};
+const MAX_CORE_POINTS = 110;
+const STORAGE_KEY = "momentum-os-v7";
 
 function todayKey() {
   const d = new Date();
@@ -105,8 +83,16 @@ function completionFor(day) {
     core,
     bonus,
     total: core + bonus,
-    percent: Math.round((core / MAX_CORE_POINTS) * 100),
+    corePercent: Math.round((core / MAX_CORE_POINTS) * 100),
+    totalPercent: Math.round(((core + bonus) / MAX_CORE_POINTS) * 100),
   };
+}
+
+function getTier(totalPercent) {
+  if (totalPercent >= 130) return { label: "Overdrive", color: "#facc15" };
+  if (totalPercent >= 100) return { label: "Elite Day", color: "#22c55e" };
+  if (totalPercent >= 60) return { label: "Stable Day", color: "#fb923c" };
+  return { label: "Drift", color: "#ef4444" };
 }
 
 function getNextMove(day, score) {
@@ -123,22 +109,24 @@ function getNextMove(day, score) {
   return picks.map((p) => p.label).join(" + ");
 }
 
-function ProgressRing({ percent, score }) {
-  const clamped = Math.max(0, Math.min(100, percent));
-  const color =
-    clamped >= 85 ? COLORS.green : clamped >= 55 ? COLORS.yellow : COLORS.orange;
+function ProgressRing({ score }) {
+  const clamped = Math.max(0, Math.min(100, score.corePercent));
+  const tier = getTier(score.totalPercent);
 
   return (
     <div
       className="relative mx-auto grid h-44 w-44 place-items-center rounded-full shadow-[0_0_55px_rgba(123,175,212,.18)]"
       style={{
-        background: `conic-gradient(${color} ${clamped * 3.6}deg, rgba(255,255,255,.08) 0deg)`,
+        background: `conic-gradient(${tier.color} ${clamped * 3.6}deg, rgba(255,255,255,.08) 0deg)`,
       }}
     >
       <div className="absolute inset-3 rounded-full border border-[#1d3a55] bg-[#07111f]" />
       <div className="relative text-center">
-        <div className="text-5xl font-black tracking-tight text-white">{score}</div>
-        <div className="text-xs font-semibold text-[#9fb7cc]">{percent}% core</div>
+        <div className="text-4xl font-black tracking-tight text-white">{score.core}</div>
+        <div className="text-xs font-semibold text-[#9fb7cc]">/ 110 points</div>
+        <div className="mt-1 text-xs font-black" style={{ color: tier.color }}>
+          {tier.label}
+        </div>
       </div>
     </div>
   );
@@ -256,7 +244,8 @@ export default function MomentumOS() {
 
   const stats = useMemo(() => {
     const last7 = Array.from({ length: 7 }, (_, i) => shiftDate(todayKey(), i - 6));
-    const avg = last7.reduce((sum, k) => sum + completionFor(data[k]).percent, 0) / 7;
+    const avg =
+      last7.reduce((sum, k) => sum + completionFor(data[k]).totalPercent, 0) / 7;
 
     let streak = 0;
     let cursor = todayKey();
@@ -346,7 +335,7 @@ export default function MomentumOS() {
     updateDay((d) => ({ ...d, closed: true }));
   }
 
-  const bonusUnlocked = score.percent >= 100;
+  const bonusUnlocked = score.corePercent >= 100;
   const availableBonus = BONUS_HABITS.map((h) => ({ ...h, locked: !bonusUnlocked }));
   const last7 = Array.from({ length: 7 }, (_, i) => shiftDate(todayKey(), i - 6));
 
@@ -379,11 +368,13 @@ export default function MomentumOS() {
         {tab === "home" && (
           <motion.main initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <section className="rounded-[2rem] border border-[#1d3a55] bg-[#0d1b2a]/95 p-5 shadow-2xl shadow-black/30">
-              <ProgressRing percent={score.percent} score={score.core} />
+              <ProgressRing score={score} />
 
               <div className="mt-5 text-center">
-                <div className="text-6xl font-black tracking-tighter text-white">{score.percent}%</div>
-                <div className="mt-1 text-sm text-[#9fb7cc]">Daily Core Momentum</div>
+                <div className="text-6xl font-black tracking-tighter text-white">
+                  {score.totalPercent}%
+                </div>
+                <div className="mt-1 text-sm text-[#9fb7cc]">daily momentum with bonus XP</div>
               </div>
 
               <div className="mt-5 grid grid-cols-3 gap-2">
@@ -435,16 +426,18 @@ export default function MomentumOS() {
 
               <div className="grid grid-cols-7 gap-2">
                 {last7.map((k) => {
-                  const p = completionFor(data[k]).percent;
+                  const p = completionFor(data[k]).totalPercent;
 
                   return (
                     <div
                       key={k}
                       className={`h-10 rounded-xl border border-[#1d3a55] ${
-                        p >= 85
+                        p >= 130
+                          ? "bg-[#facc15]"
+                          : p >= 100
                           ? "bg-emerald-400/70"
-                          : p >= 55
-                          ? "bg-[#ffd84d]/55"
+                          : p >= 60
+                          ? "bg-[#fb923c]/75"
                           : data[k]
                           ? "bg-red-500/25"
                           : "bg-[#102338]"
@@ -548,16 +541,18 @@ export default function MomentumOS() {
                 {monthDays(date).map((k, i) => {
                   if (!k) return <div key={`blank-${i}`} />;
 
-                  const p = completionFor(data[k]).percent;
+                  const p = completionFor(data[k]).totalPercent;
 
                   return (
                     <div
                       key={k}
                       className={`grid aspect-square place-items-center rounded-xl border border-[#1d3a55] text-xs font-black ${
-                        p >= 85
+                        p >= 130
+                          ? "bg-[#facc15] text-[#07111f]"
+                          : p >= 100
                           ? "bg-emerald-400/70 text-[#07111f]"
-                          : p >= 55
-                          ? "bg-[#ffd84d]/60 text-[#07111f]"
+                          : p >= 60
+                          ? "bg-[#fb923c]/75 text-[#07111f]"
                           : data[k]
                           ? "bg-red-500/25 text-slate-200"
                           : "bg-[#102338] text-[#86a7c2]"
