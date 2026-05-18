@@ -35,7 +35,7 @@ const BONUS_HABITS = [
 ];
 
 const MAX_CORE_POINTS = 110;
-const STORAGE_KEY = "momentum-os-v8";
+const STORAGE_KEY = "momentum-os-v9";
 
 function todayKey() {
   const d = new Date();
@@ -100,18 +100,18 @@ function completionFor(day) {
 
 function getTier(score) {
   if (score.totalPercent >= 109) {
-    return { label: "Overdrive Day", color: "#b8860b" };
+    return { label: "Overdrive Day", color: "#b8860b", key: "overdrive" };
   }
 
   if (score.core >= 95) {
-    return { label: "Elite Day", color: "#22c55e" };
+    return { label: "Elite Day", color: "#22c55e", key: "elite" };
   }
 
   if (score.core >= 60) {
-    return { label: "Stable Day", color: "#fb923c" };
+    return { label: "Stable Day", color: "#fb923c", key: "stable" };
   }
 
-  return { label: "Drift Day", color: "#ef4444" };
+  return { label: "Drift Day", color: "#ef4444", key: "drift" };
 }
 
 function getNextMove(day, score) {
@@ -191,6 +191,55 @@ function XpBurst({ burst }) {
   );
 }
 
+function TierPopup({ popup }) {
+  return (
+    <AnimatePresence>
+      {popup && (
+        <>
+          <motion.div
+            key={`${popup.id}-flash`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.2 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.35 }}
+            className="pointer-events-none fixed inset-0 z-40"
+            style={{ backgroundColor: popup.color }}
+          />
+
+          <motion.div
+            key={popup.id}
+            initial={{ opacity: 0, scale: 0.75, y: 18 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.92, y: -8 }}
+            transition={{ duration: 0.45 }}
+            className="pointer-events-none fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2"
+          >
+            <div
+              className="rounded-[2rem] border-2 px-10 py-8 text-center shadow-2xl backdrop-blur-xl"
+              style={{
+                backgroundColor: "rgba(7,17,31,.94)",
+                borderColor: popup.color,
+                boxShadow: `0 0 55px ${popup.color}55`,
+              }}
+            >
+              <div
+                className="text-4xl font-black tracking-tight"
+                style={{ color: popup.color }}
+              >
+                {popup.label}
+              </div>
+
+              <div className="mt-2 text-xs font-black uppercase tracking-[0.25em] text-[#9fb7cc]">
+                Tier Unlocked
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
+
 function HabitRow({ habit, checked, locked = false, onToggle, bonus = false }) {
   return (
     <motion.button
@@ -257,6 +306,8 @@ export default function MomentumOS() {
   const [tab, setTab] = useState("home");
   const [data, setData] = useState({});
   const [burst, setBurst] = useState(null);
+  const [tierPopup, setTierPopup] = useState(null);
+  const [triggeredTiers, setTriggeredTiers] = useState([]);
 
   useEffect(() => {
     try {
@@ -282,6 +333,10 @@ export default function MomentumOS() {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }, [data]);
+
+  useEffect(() => {
+    setTriggeredTiers([]);
+  }, [date]);
 
   const rawDay = data[date] || defaultDay();
   const day =
@@ -395,32 +450,78 @@ export default function MomentumOS() {
     }, 700);
   }
 
+  function triggerTier(updatedScore) {
+    const tier = getTier(updatedScore);
+
+    if (tier.key === "drift") return;
+    if (triggeredTiers.includes(tier.key)) return;
+
+    setTriggeredTiers((prev) => [...prev, tier.key]);
+
+    const id = Date.now();
+
+    setTierPopup({
+      id,
+      label: tier.label,
+      color: tier.color,
+      key: tier.key,
+    });
+
+    setTimeout(() => {
+      setTierPopup((current) => (current?.id === id ? null : current));
+    }, 1400);
+  }
+
   function toggleCore(habit) {
     const currently = Boolean(day.core?.[habit.id]);
 
+    const updatedCore = {
+      ...day.core,
+      [habit.id]: !currently,
+    };
+
+    const simulatedDay = {
+      ...day,
+      core: updatedCore,
+    };
+
+    const updatedScore = completionFor(simulatedDay);
+
     updateDay((d) => ({
       ...d,
-      core: {
-        ...d.core,
-        [habit.id]: !currently,
-      },
+      core: updatedCore,
     }));
 
-    if (!currently) triggerBurst(habit.points);
+    if (!currently) {
+      triggerBurst(habit.points);
+      triggerTier(updatedScore);
+    }
   }
 
   function toggleBonus(habit) {
     const currently = Boolean(day.bonus?.[habit.id]);
 
+    const updatedBonus = {
+      ...day.bonus,
+      [habit.id]: !currently,
+    };
+
+    const simulatedDay = {
+      ...day,
+      bonus: updatedBonus,
+    };
+
+    const updatedScore = completionFor(simulatedDay);
+
     updateDay((d) => ({
       ...d,
-      bonus: {
-        ...d.bonus,
-        [habit.id]: !currently,
-      },
+      bonus: updatedBonus,
     }));
 
-    if (!currently) triggerBurst(habit.points);
+    if (!currently) {
+      triggerBurst(habit.points);
+      triggerTier(updatedScore);
+    }
   }
 
   function closeDay() {
@@ -453,6 +554,7 @@ export default function MomentumOS() {
   return (
     <div className="min-h-screen bg-[#07111f] bg-[radial-gradient(circle_at_15%_10%,rgba(123,175,212,.22),transparent_28%),radial-gradient(circle_at_88%_18%,rgba(255,138,61,.16),transparent_30%)] px-4 pb-28 pt-5 text-slate-100">
       <XpBurst burst={burst} />
+      <TierPopup popup={tierPopup} />
 
       <div className="mx-auto max-w-md">
         <header className="mb-4 flex items-start justify-between gap-3">
