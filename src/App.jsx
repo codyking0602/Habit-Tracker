@@ -22,7 +22,7 @@ const CORE_HABITS = [
   { id: "bed", label: "Bed On Time", points: 10, group: "Recovery" },
   { id: "yoga", label: "Yoga + Meditate", points: 10, group: "Recovery" },
   { id: "calories", label: "Under 2,300 Calories", points: 10, group: "Nutrition" },
-  { id: "water", label: "Gallon Water", points: 5, group: "Nutrition" },
+  { id: "water", label: "Gallon Water/Pills", points: 5, group: "Nutrition" },
   { id: "read", label: "Read", points: 5, group: "Mind" },
 ];
 
