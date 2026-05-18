@@ -15,7 +15,7 @@ const CORE_HABITS = [
   { id: "bed", label: "Bed on time", points: 10, group: "Recovery" },
   { id: "yoga", label: "Yoga + meditate", points: 10, group: "Recovery" },
   { id: "calories", label: "Under 2,300 calories", points: 10, group: "Nutrition" },
-  { id: "water", label: "Gallon water", points: 5, group: "Nutrition" },
+  { id: "water", label: "Gallon water/Pills", points: 5, group: "Nutrition" },
   { id: "read", label: "Read", points: 5, group: "Mind" },
 ];
 
@@ -89,9 +89,9 @@ function completionFor(day) {
 }
 
 function getTier(totalPercent) {
-  if (totalPercent >= 130) return { label: "Overdrive", color: "#facc15" };
-  if (totalPercent >= 100) return { label: "Elite Day", color: "#22c55e" };
-  if (totalPercent >= 60) return { label: "Stable Day", color: "#fb923c" };
+  if (totalPoints >= 130) return { label: "Overdrive", color: "#c29e3e" };
+  if (totalPoints >= 100) return { label: "Elite Day", color: "#22c55e" };
+  if (totalPoints >= 60) return { label: "Stable Day", color: "#fb923c" };
   return { label: "Drift", color: "#ef4444" };
 }
 
@@ -374,7 +374,7 @@ export default function MomentumOS() {
                 <div className="text-6xl font-black tracking-tighter text-white">
                   {score.totalPercent}%
                 </div>
-                <div className="mt-1 text-sm text-[#9fb7cc]">daily momentum with bonus XP</div>
+                <div className="mt-1 text-sm text-[#9fb7cc]">XP Percentage</div>
               </div>
 
               <div className="mt-5 grid grid-cols-3 gap-2">
