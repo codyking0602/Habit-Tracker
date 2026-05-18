@@ -35,7 +35,7 @@ const BONUS_HABITS = [
 ];
 
 const MAX_CORE_POINTS = 110;
-const STORAGE_KEY = "momentum-os-v9";
+const STORAGE_KEY = "momentum-os-v8";
 
 function todayKey() {
   const d = new Date();
