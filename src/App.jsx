@@ -99,11 +99,11 @@ function completionFor(day) {
 }
 
 function getTier(score) {
-  if (score.totalPercent >= 130) {
+  if (score.totalPercent >= 109) {
     return { label: "Overdrive Day", color: "#b8860b" };
   }
 
-  if (score.core >= 110) {
+  if (score.core >= 95) {
     return { label: "Elite Day", color: "#22c55e" };
   }
 
@@ -430,7 +430,7 @@ export default function MomentumOS() {
     }));
   }
 
-  const bonusUnlocked = score.corePercent >= 100;
+  const bonusUnlocked = score.corePercent >= 85;
 
   const availableBonus = BONUS_HABITS.map((h) => ({
     ...h,
@@ -623,7 +623,7 @@ export default function MomentumOS() {
                 <div>
                   <div className="font-black text-[#ff8a3d]">Bonus XP</div>
                   <div className="text-xs text-[#86a7c2]">
-                    Unlocks After 100% Core Momentum
+                    Unlocks After 85% Core Momentum
                   </div>
                 </div>
 
