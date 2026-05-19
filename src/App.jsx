@@ -213,6 +213,17 @@ function isPastDate(dateKey) {
   return dateKey < todayKey();
 }
 
+function shouldCountDay(dayKey, dayData) {
+  if (!dayData) return false;
+
+  const isToday = dayKey === todayKey();
+
+  if (isToday && !dayData.closed) {
+    return false;
+  }
+
+  return true;
+}
 function completionFor(day) {
   const safeDay = day || defaultDay();
 
@@ -265,7 +276,7 @@ function getNextMove(day, score) {
   return picks.map((p) => p.label).join(" + ");
 }
 
-function getHeatClass(day) {
+function getHeatClass(dayKey, day) {   if (!shouldCountDay(dayKey, day)) {     return "bg-[#102338] text-[#86a7c2]";   }    const score = completionFor(day);    if (score.totalPercent >= 109) return "bg-[#b8860b] text-white";   if (score.core >= 95) return "bg-emerald-400/70 text-[#07111f]";   if (score.core >= 60) return "bg-[#fb923c]/75 text-[#07111f]";   return "bg-red-500/25 text-slate-200"; } {
   const score = completionFor(day);
 
   if (score.totalPercent >= 109) return "bg-[#b8860b] text-white";
@@ -295,7 +306,9 @@ function getSectionScore(day, section) {
 }
 
 function monthlyStats(data, targetMonth) {
-  const keys = Object.keys(data).filter((k) => monthKey(k) === targetMonth);
+  const keys = Object.keys(data).filter(
+  (k) => monthKey(k) === targetMonth && shouldCountDay(k, data[k])
+);
 
   if (!keys.length) {
     return {
@@ -348,8 +361,7 @@ function monthlyStats(data, targetMonth) {
 }
 
 function allTimeStats(data) {
-  const keys = Object.keys(data);
-
+  const keys = Object.keys(data).filter((k) => shouldCountDay(k, data[k]));
   return keys.reduce(
     (acc, k) => {
       const score = completionFor(data[k]);
@@ -661,7 +673,7 @@ export default function LifeScoreboard() {
   const day = isPastDate(date) && !rawDay.closed ? { ...rawDay, closed: true } : rawDay;
 
   const score = completionFor(day);
-  const loggedKeys = Object.keys(data).sort();
+  const loggedKeys = Object.keys(data)   .filter((k) => shouldCountDay(k, data[k]))   .sort();
   const selectedMonth = monthKey(date);
   const thisMonthStats = monthlyStats(data, selectedMonth);
   const totals = allTimeStats(data);
@@ -673,7 +685,7 @@ export default function LifeScoreboard() {
       last7.reduce((sum, k) => sum + completionFor(data[k]).totalPercent, 0) / 7;
 
     let streak = 0;
-    let cursor = todayKey();
+    let cursor = shouldCountDay(todayKey(), data[todayKey()])   ? todayKey()   : shiftDate(todayKey(), -1);
 
     while (completionFor(data[cursor]).core >= 60) {
       streak += 1;
@@ -746,7 +758,7 @@ export default function LifeScoreboard() {
   }, [data, loggedKeys.length, stats.avg]);
 
   const monthlyComparison = useMemo(() => {
-    const months = [...new Set(Object.keys(data).map(monthKey))].sort().reverse();
+    const months = [   ...new Set(     Object.keys(data)       .filter((k) => shouldCountDay(k, data[k]))       .map(monthKey)   ), ]   .sort()   .reverse();
     return months.map((m) => monthlyStats(data, m));
   }, [data]);
 
@@ -998,7 +1010,7 @@ export default function LifeScoreboard() {
               <div className="grid grid-cols-7 gap-2">
                 {last7.map((k) => {
                   const dayData = data[k];
-                  const heatClass = getHeatClass(dayData);
+                  const heatClass = getHeatClass(k, dayData);
 
                   return (
                     <button
@@ -1128,7 +1140,7 @@ export default function LifeScoreboard() {
                   if (!k) return <div key={`blank-${i}`} />;
 
                   const dayData = data[k];
-                  const heatClass = getHeatClass(dayData);
+                  const heatClass = getHeatClass(k, dayData);
 
                   return (
                     <button
