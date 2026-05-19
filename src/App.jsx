@@ -276,13 +276,18 @@ function getNextMove(day, score) {
   return picks.map((p) => p.label).join(" + ");
 }
 
-function getHeatClass(dayKey, day) {   if (!shouldCountDay(dayKey, day)) {     return "bg-[#102338] text-[#86a7c2]";   }    const score = completionFor(day);    if (score.totalPercent >= 109) return "bg-[#b8860b] text-white";   if (score.core >= 95) return "bg-emerald-400/70 text-[#07111f]";   if (score.core >= 60) return "bg-[#fb923c]/75 text-[#07111f]";   return "bg-red-500/25 text-slate-200"; } {
+function getHeatClass(dayKey, day) {
+  if (!shouldCountDay(dayKey, day)) {
+    return "bg-[#102338] text-[#86a7c2]";
+  }
+
   const score = completionFor(day);
 
   if (score.totalPercent >= 109) return "bg-[#b8860b] text-white";
   if (score.core >= 95) return "bg-emerald-400/70 text-[#07111f]";
   if (score.core >= 60) return "bg-[#fb923c]/75 text-[#07111f]";
-  if (day) return "bg-red-500/25 text-slate-200";
+  return "bg-red-500/25 text-slate-200";
+}
 
   return "bg-[#102338] text-[#86a7c2]";
 }
