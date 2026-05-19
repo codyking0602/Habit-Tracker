@@ -13,11 +13,11 @@ const CORE_SECTIONS = ["Body", "Focus", "Family", "Recovery", "Nutrition", "Mind
 
 const SECTION_COLORS = {
   Body: "#7BAFD4",
-  Focus: "#f97316",
+  Focus: "#F05A28",
   Family: "#22c55e",
-  Recovery: "#a78bfa",
-  Nutrition: "#facc15",
-  Mind: "#38bdf8",
+  Recovery: "#EC008C",
+  Nutrition: "#FBBF24",
+  Mind: "#00B2A9",
 };
 
 const CORE_HABITS = [
@@ -69,6 +69,39 @@ const TIER_MESSAGES = {
     "Real Confidence Comes From Evidence.",
   ],
 };
+
+function playTone(type = "click") {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    const settings = {
+      click: { freq: 420, end: 0.045, gain: 0.025, type: "triangle" },
+      xp: { freq: 760, end: 0.08, gain: 0.035, type: "sine" },
+      stable: { freq: 150, end: 0.18, gain: 0.06, type: "sine" },
+      elite: { freq: 520, end: 0.22, gain: 0.065, type: "triangle" },
+      overdrive: { freq: 95, end: 0.32, gain: 0.085, type: "sawtooth" },
+    }[type];
+
+    osc.type = settings.type;
+    osc.frequency.setValueAtTime(settings.freq, ctx.currentTime);
+    if (type === "xp" || type === "elite") {
+      osc.frequency.exponentialRampToValueAtTime(settings.freq * 1.45, ctx.currentTime + settings.end);
+    }
+
+    gain.gain.setValueAtTime(settings.gain, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + settings.end);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + settings.end);
+  } catch {
+    // audio may be blocked until user interaction; ignore safely
+  }
+}
 
 function todayKey() {
   const d = new Date();
@@ -378,18 +411,18 @@ function SectionProgress({ section, day, theme = "dark" }) {
   const color = SECTION_COLORS[section] || "#7BAFD4";
 
   return (
-    <div className={theme === "light" ? "mb-3 rounded-2xl border border-slate-200 bg-white p-3" : "mb-3 rounded-2xl border border-[#1d3a55] bg-[#07111f]/40 p-3"}>
+    <div className="mb-3 rounded-2xl border border-white/10 bg-white/[.04] p-3">
       <div className="mb-2 flex items-center justify-between">
-        <div className={theme === "light" ? "text-xs font-black uppercase tracking-widest text-slate-700" : "text-xs font-black uppercase tracking-widest text-[#7BAFD4]"}>
+        <div className="text-xs font-black uppercase tracking-widest text-white/80">
           {section}
         </div>
 
-        <div className={theme === "light" ? "text-xs font-black text-slate-900" : "text-xs font-black text-[#ffd84d]"}>
+        <div className="text-xs font-black text-white">
           {earned}/{max}
         </div>
       </div>
 
-      <div className={theme === "light" ? "h-2 overflow-hidden rounded-full bg-slate-200" : "h-2 overflow-hidden rounded-full bg-[#102338]"}>
+      <div className="h-2 overflow-hidden rounded-full bg-black/25">
         <motion.div
           initial={false}
           animate={{ width: `${percent}%` }}
@@ -414,16 +447,19 @@ function HabitRow({
   const isDisabled = locked || disabled;
 
   const base =
-    theme === "light"
-      ? "flex w-full items-center gap-3 border-b border-slate-200 px-3 py-4 text-left last:border-b-0"
+    theme === "today"
+      ? "flex w-full items-center gap-3 border-b border-[#103b40]/70 px-3 py-4 text-left last:border-b-0"
+      : theme === "intel"
+      ? "flex w-full items-center gap-3 border-b border-[#3a3a3a] px-3 py-4 text-left last:border-b-0"
       : "flex w-full items-center gap-3 border-b border-[#1d3a55]/70 px-3 py-4 text-left last:border-b-0";
 
-  const circle =
-    checked
-      ? "border-emerald-500 bg-emerald-500 text-white"
-      : theme === "light"
-      ? "border-slate-300 bg-white"
-      : "border-[#315b7a] bg-[#102338]";
+  const circle = checked
+    ? "border-emerald-300 bg-emerald-400 text-[#07111f]"
+    : theme === "today"
+    ? "border-[#00B2A9]/40 bg-[#123236]"
+    : theme === "intel"
+    ? "border-[#BF5700]/40 bg-[#202020]"
+    : "border-[#315b7a] bg-[#102338]";
 
   return (
     <motion.button
@@ -438,47 +474,51 @@ function HabitRow({
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <div className={theme === "light" ? "truncate font-bold text-slate-900" : "truncate font-bold text-slate-100"}>
-            {habit.label}
-          </div>
+          <div className="truncate font-bold text-slate-100">{habit.label}</div>
           {bonus && <Sparkles size={14} className="text-[#ffd84d]" />}
         </div>
 
-        {!bonus && (
-          <div className={theme === "light" ? "text-xs text-slate-500" : "text-xs text-[#86a7c2]"}>
-            {habit.group}
-          </div>
-        )}
+        {!bonus && <div className="text-xs text-white/55">{habit.group}</div>}
       </div>
 
-      <div className={theme === "light" ? "font-black text-orange-500" : "font-black text-[#ffd84d]"}>
-        +{habit.points}
-      </div>
+      <div className="font-black text-[#ffd84d]">+{habit.points}</div>
     </motion.button>
   );
 }
 
-function Stat({ label, value, theme = "dark" }) {
-  return (
-    <div className={theme === "light" ? "rounded-2xl border border-slate-200 bg-white p-3 text-center shadow-sm" : "rounded-2xl border border-[#1d3a55] bg-[#102338] p-3 text-center shadow-[0_0_25px_rgba(0,0,0,.28)]"}>
-      <div className={theme === "light" ? "text-2xl font-black text-slate-950" : "text-2xl font-black text-white"}>
-        {value}
-      </div>
+function Stat({ label, value, theme = "home" }) {
+  const cls =
+    theme === "history"
+      ? "rounded-2xl border border-[#E56020]/30 bg-[#1D1160]/70 p-3 text-center"
+      : theme === "intel"
+      ? "rounded-2xl border border-[#BF5700]/30 bg-[#171717] p-3 text-center"
+      : "rounded-2xl border border-[#1d3a55] bg-[#102338] p-3 text-center shadow-[0_0_25px_rgba(0,0,0,.28)]";
 
-      <div className={theme === "light" ? "mt-1 text-[10px] font-black uppercase tracking-wider text-slate-500" : "mt-1 text-[10px] font-black uppercase tracking-wider text-[#86a7c2]"}>
+  return (
+    <div className={cls}>
+      <div className="text-2xl font-black text-white">{value}</div>
+
+      <div className="mt-1 text-[10px] font-black uppercase tracking-wider text-white/55">
         {label}
       </div>
     </div>
   );
 }
 
-function NavButton({ active, onClick, icon, label }) {
+const NAV_STYLES = {
+  home: "bg-[#102f4a] text-[#7BAFD4] shadow-[0_0_18px_rgba(123,175,212,.18)]",
+  today: "bg-[#0f3b3f] text-[#00B2A9] shadow-[0_0_18px_rgba(0,178,169,.18)]",
+  history: "bg-[#2b145d] text-[#F9A01B] shadow-[0_0_18px_rgba(249,160,27,.18)]",
+  insights: "bg-[#2a1a10] text-[#BF5700] shadow-[0_0_18px_rgba(191,87,0,.18)]",
+};
+
+function NavButton({ active, onClick, icon, label, tabKey }) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={`flex flex-col items-center gap-1 rounded-2xl py-2 text-xs font-black transition ${
-        active ? "bg-[#102f4a] text-[#7BAFD4]" : "text-[#6f8ba3]"
+        active ? NAV_STYLES[tabKey] : "text-[#6f8ba3]"
       }`}
     >
       {icon}
@@ -491,15 +531,15 @@ function MonthlyBar({ month }) {
   const width = Math.max(0, Math.min(135, month.avg));
 
   return (
-    <div className="rounded-2xl border border-[#25384d] bg-[#111827] p-3">
+    <div className="rounded-2xl border border-[#E56020]/25 bg-[#1D1160]/65 p-3">
       <div className="mb-2 flex items-center justify-between">
         <div className="text-sm font-black text-white">{monthLabel(month.month)}</div>
-        <div className="text-xs font-black text-[#9fb7cc]">{month.avg}%</div>
+        <div className="text-xs font-black text-[#F9A01B]">{month.avg}%</div>
       </div>
 
-      <div className="h-2 overflow-hidden rounded-full bg-[#1f2937]">
+      <div className="h-2 overflow-hidden rounded-full bg-black/25">
         <div
-          className="h-full rounded-full bg-[#7BAFD4]"
+          className="h-full rounded-full bg-[#E56020]"
           style={{ width: `${width}%` }}
         />
       </div>
@@ -652,6 +692,7 @@ export default function LifeScoreboard() {
     const id = Date.now();
 
     setBurst({ id, points });
+    playTone("xp");
 
     setTimeout(() => {
       setBurst((b) => (b?.id === id ? null : b));
@@ -666,6 +707,8 @@ export default function LifeScoreboard() {
 
     setTriggeredTiers((prev) => [...prev, tier.key]);
 
+    playTone(tier.key);
+
     const id = Date.now();
 
     setTierPopup({
@@ -679,6 +722,8 @@ export default function LifeScoreboard() {
 
   function toggleCore(habit) {
     if (day.closed) return;
+
+    playTone("click");
 
     const currently = Boolean(day.core?.[habit.id]);
 
@@ -708,6 +753,8 @@ export default function LifeScoreboard() {
   function toggleBonus(habit) {
     if (day.closed) return;
 
+    playTone("click");
+
     const currently = Boolean(day.bonus?.[habit.id]);
 
     const updatedBonus = {
@@ -734,6 +781,8 @@ export default function LifeScoreboard() {
   }
 
   function toggleCloseDay() {
+    playTone("click");
+
     updateDay((d) => ({
       ...d,
       closed: !d.closed,
@@ -741,6 +790,7 @@ export default function LifeScoreboard() {
   }
 
   function openHistoryDay(dayKey) {
+    playTone("click");
     setDate(dayKey);
     setTab("today");
   }
@@ -763,18 +813,17 @@ export default function LifeScoreboard() {
     0
   );
 
+  const appBg =
+    tab === "today"
+      ? "min-h-screen bg-[#071b1d] bg-[radial-gradient(circle_at_15%_10%,rgba(0,178,169,.18),transparent_28%),radial-gradient(circle_at_85%_15%,rgba(236,0,140,.12),transparent_30%)] px-4 pb-28 pt-5 text-slate-100"
+      : tab === "history"
+      ? "min-h-screen bg-[#14072f] bg-[radial-gradient(circle_at_20%_10%,rgba(229,96,32,.20),transparent_28%),radial-gradient(circle_at_85%_18%,rgba(249,160,27,.14),transparent_30%)] px-4 pb-28 pt-5 text-slate-100"
+      : tab === "insights"
+      ? "min-h-screen bg-[#121212] bg-[radial-gradient(circle_at_18%_10%,rgba(191,87,0,.18),transparent_28%)] px-4 pb-28 pt-5 text-slate-100"
+      : "min-h-screen bg-[#07111f] bg-[radial-gradient(circle_at_15%_10%,rgba(123,175,212,.22),transparent_28%),radial-gradient(circle_at_88%_18%,rgba(255,138,61,.16),transparent_30%)] px-4 pb-28 pt-5 text-slate-100";
+
   return (
-    <div
-      className={
-        tab === "today"
-          ? "min-h-screen bg-[#f8fafc] px-4 pb-28 pt-5 text-slate-950"
-          : tab === "history"
-          ? "min-h-screen bg-[#0c1220] bg-[radial-gradient(circle_at_20%_10%,rgba(123,175,212,.16),transparent_28%)] px-4 pb-28 pt-5 text-slate-100"
-          : tab === "insights"
-          ? "min-h-screen bg-[#100f24] bg-[radial-gradient(circle_at_20%_10%,rgba(167,139,250,.18),transparent_28%)] px-4 pb-28 pt-5 text-slate-100"
-          : "min-h-screen bg-[#07111f] bg-[radial-gradient(circle_at_15%_10%,rgba(123,175,212,.22),transparent_28%),radial-gradient(circle_at_88%_18%,rgba(255,138,61,.16),transparent_30%)] px-4 pb-28 pt-5 text-slate-100"
-      }
-    >
+    <div className={appBg}>
       <XpBurst burst={burst} />
       <TierPopup popup={tierPopup} onClose={() => setTierPopup(null)} />
 
@@ -784,14 +833,18 @@ export default function LifeScoreboard() {
             <h1
               className={
                 tab === "today"
-                  ? "text-4xl font-black tracking-tighter text-slate-950"
+                  ? "text-4xl font-black tracking-tighter text-[#00B2A9]"
+                  : tab === "history"
+                  ? "text-4xl font-black tracking-tighter text-[#F9A01B]"
+                  : tab === "insights"
+                  ? "text-4xl font-black tracking-tighter text-[#BF5700]"
                   : "text-4xl font-black tracking-tighter text-[#7BAFD4]"
               }
             >
               Life Scoreboard
             </h1>
 
-            <p className={tab === "today" ? "mt-1 text-sm text-slate-500" : "mt-1 text-sm text-[#9fb7cc]"}>
+            <p className="mt-1 text-sm text-white/55">
               Consistency Compounds.
             </p>
           </div>
@@ -800,11 +853,7 @@ export default function LifeScoreboard() {
             value={date}
             onChange={(e) => setDate(e.target.value)}
             type="date"
-            className={
-              tab === "today"
-                ? "max-w-[142px] rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-950 outline-none"
-                : "max-w-[142px] rounded-2xl border border-[#1d3a55] bg-[#0d1b2a] px-3 py-2 text-sm font-bold text-slate-100 outline-none"
-            }
+            className="max-w-[142px] rounded-2xl border border-white/15 bg-black/20 px-3 py-2 text-sm font-bold text-slate-100 outline-none"
           />
         </header>
 
@@ -896,16 +945,16 @@ export default function LifeScoreboard() {
 
         {tab === "today" && (
           <motion.main initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-            <section className="rounded-[1.7rem] border border-slate-200 bg-white p-4 shadow-sm">
+            <section className="rounded-[1.7rem] border border-[#00B2A9]/25 bg-[#0c2528]/95 p-4">
               <div className="mb-2 flex items-center justify-between">
                 <div>
-                  <div className="font-black text-slate-950">Core XP</div>
-                  <div className="text-xs text-slate-500">
+                  <div className="font-black text-[#00B2A9]">Core XP</div>
+                  <div className="text-xs text-white/55">
                     {day.closed ? "Day Locked" : "Always Available"}
                   </div>
                 </div>
 
-                <div className="font-black text-orange-500">
+                <div className="font-black text-[#F05A28]">
                   {score.core}/{MAX_CORE_POINTS}
                 </div>
               </div>
@@ -918,10 +967,10 @@ export default function LifeScoreboard() {
                 return (
                   <div
                     key={section}
-                    className="mb-4 overflow-hidden rounded-3xl border border-slate-200 bg-white last:mb-0"
+                    className="mb-4 overflow-hidden rounded-3xl border border-[#00B2A9]/20 bg-[#0f3034] last:mb-0"
                   >
-                    <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
-                      <SectionProgress section={section} day={day} theme="light" />
+                    <div className="border-b border-[#00B2A9]/20 bg-black/10 px-4 py-3">
+                      <SectionProgress section={section} day={day} theme="today" />
                     </div>
 
                     {habits.map((h) => (
@@ -931,7 +980,7 @@ export default function LifeScoreboard() {
                         checked={Boolean(day.core?.[h.id])}
                         disabled={day.closed}
                         onToggle={toggleCore}
-                        theme="light"
+                        theme="today"
                       />
                     ))}
                   </div>
@@ -939,17 +988,17 @@ export default function LifeScoreboard() {
               })}
             </section>
 
-            <section className="mt-4 rounded-[1.7rem] border border-slate-200 bg-white p-4 shadow-sm">
+            <section className="mt-4 rounded-[1.7rem] border border-[#EC008C]/25 bg-[#0c2528]/95 p-4">
               <div className="mb-2 flex items-center justify-between">
                 <div>
-                  <div className="font-black text-orange-500">Bonus XP</div>
-                  <div className="text-xs text-slate-500">Unlocks After 85% Core Momentum</div>
+                  <div className="font-black text-[#EC008C]">Bonus XP</div>
+                  <div className="text-xs text-white/55">Unlocks After 85% Core Momentum</div>
                 </div>
 
-                <div className="font-black text-orange-500">+{score.bonus}</div>
+                <div className="font-black text-[#F05A28]">+{score.bonus}</div>
               </div>
 
-              <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white">
+              <div className="overflow-hidden rounded-3xl border border-[#EC008C]/20 bg-[#0f3034]">
                 {availableBonus.map((h) => (
                   <HabitRow
                     key={h.id}
@@ -959,7 +1008,7 @@ export default function LifeScoreboard() {
                     disabled={day.closed}
                     onToggle={toggleBonus}
                     bonus
-                    theme="light"
+                    theme="today"
                   />
                 ))}
               </div>
@@ -982,17 +1031,17 @@ export default function LifeScoreboard() {
 
         {tab === "history" && (
           <motion.main initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-            <section className="rounded-[1.7rem] border border-[#25384d] bg-[#111827]/95 p-4">
+            <section className="rounded-[1.7rem] border border-[#E56020]/30 bg-[#1D1160]/80 p-4">
               <div className="mb-4 flex items-center justify-between">
                 <div>
-                  <div className="font-black text-[#7BAFD4]">History</div>
-                  <div className="text-xs text-[#9fb7cc]">Monthly Heatmap</div>
+                  <div className="font-black text-[#F9A01B]">History</div>
+                  <div className="text-xs text-white/55">Monthly Heatmap</div>
                 </div>
 
-                <div className="text-sm font-black text-slate-300">Best {stats.bestStreak}</div>
+                <div className="text-sm font-black text-slate-200">Best {stats.bestStreak}</div>
               </div>
 
-              <div className="grid grid-cols-7 gap-2 text-center text-[10px] font-black text-[#9fb7cc]">
+              <div className="grid grid-cols-7 gap-2 text-center text-[10px] font-black text-white/55">
                 {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
                   <div key={`${d}-${i}`}>{d}</div>
                 ))}
@@ -1010,7 +1059,7 @@ export default function LifeScoreboard() {
                       key={k}
                       type="button"
                       onClick={() => openHistoryDay(k)}
-                      className={`grid aspect-square place-items-center rounded-xl border border-[#25384d] text-xs font-black ${heatClass}`}
+                      className={`grid aspect-square place-items-center rounded-xl border border-[#E56020]/30 text-xs font-black ${heatClass}`}
                     >
                       {new Date(k + "T00:00:00").getDate()}
                     </button>
@@ -1019,25 +1068,25 @@ export default function LifeScoreboard() {
               </div>
             </section>
 
-            <section className="mt-4 rounded-[1.7rem] border border-[#25384d] bg-[#111827]/95 p-4">
-              <div className="font-black text-[#7BAFD4]">All-Time Stats</div>
+            <section className="mt-4 rounded-[1.7rem] border border-[#E56020]/30 bg-[#1D1160]/80 p-4">
+              <div className="font-black text-[#F9A01B]">All-Time Stats</div>
 
               <div className="mt-3 grid grid-cols-2 gap-2">
-                <Stat label="Drift Days" value={totals.drift} />
-                <Stat label="Stable Days" value={totals.stable} />
-                <Stat label="Elite Days" value={totals.elite} />
-                <Stat label="Overdrive Days" value={totals.overdrive} />
+                <Stat label="Drift Days" value={totals.drift} theme="history" />
+                <Stat label="Stable Days" value={totals.stable} theme="history" />
+                <Stat label="Elite Days" value={totals.elite} theme="history" />
+                <Stat label="Overdrive Days" value={totals.overdrive} theme="history" />
               </div>
             </section>
 
-            <section className="mt-4 rounded-[1.7rem] border border-[#25384d] bg-[#111827]/95 p-4">
-              <div className="font-black text-[#7BAFD4]">Monthly Comparison</div>
+            <section className="mt-4 rounded-[1.7rem] border border-[#E56020]/30 bg-[#1D1160]/80 p-4">
+              <div className="font-black text-[#F9A01B]">Monthly Comparison</div>
 
               <div className="mt-3 space-y-3">
                 {monthlyComparison.length ? (
                   monthlyComparison.map((m) => <MonthlyBar key={m.month} month={m} />)
                 ) : (
-                  <div className="text-sm text-[#9fb7cc]">No Month Data Yet.</div>
+                  <div className="text-sm text-white/55">No Month Data Yet.</div>
                 )}
               </div>
             </section>
@@ -1046,14 +1095,14 @@ export default function LifeScoreboard() {
 
         {tab === "insights" && (
           <motion.main initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-            <section className="rounded-[1.7rem] border border-violet-800/40 bg-[#17152f]/95 p-4">
-              <div className="font-black text-violet-300">Pattern Intelligence</div>
+            <section className="rounded-[1.7rem] border border-[#BF5700]/35 bg-[#171717]/95 p-4">
+              <div className="font-black text-[#BF5700]">Pattern Intelligence</div>
 
-              <div className="mt-3 overflow-hidden rounded-3xl border border-violet-800/40 bg-[#201b3f]">
+              <div className="mt-3 overflow-hidden rounded-3xl border border-[#BF5700]/30 bg-[#222222]">
                 {insights.map((x, i) => (
                   <div
                     key={i}
-                    className="border-b border-violet-800/40 px-4 py-4 text-sm leading-6 text-slate-300 last:border-b-0"
+                    className="border-b border-[#BF5700]/25 px-4 py-4 text-sm leading-6 text-slate-300 last:border-b-0"
                   >
                     {x}
                   </div>
@@ -1064,12 +1113,12 @@ export default function LifeScoreboard() {
         )}
       </div>
 
-      <nav className="fixed bottom-0 left-0 right-0 border-t border-[#1d3a55] bg-[#07111f]/92 px-3 py-3 backdrop-blur-xl">
+      <nav className="fixed bottom-0 left-0 right-0 border-t border-white/10 bg-[#07111f]/92 px-3 py-3 backdrop-blur-xl">
         <div className="mx-auto grid max-w-md grid-cols-4 gap-2">
-          <NavButton active={tab === "home"} onClick={() => setTab("home")} icon={<Home size={18} />} label="Home" />
-          <NavButton active={tab === "today"} onClick={() => setTab("today")} icon={<Activity size={18} />} label="Today" />
-          <NavButton active={tab === "history"} onClick={() => setTab("history")} icon={<CalendarDays size={18} />} label="History" />
-          <NavButton active={tab === "insights"} onClick={() => setTab("insights")} icon={<Brain size={18} />} label="Intel" />
+          <NavButton active={tab === "home"} onClick={() => setTab("home")} icon={<Home size={18} />} label="Home" tabKey="home" />
+          <NavButton active={tab === "today"} onClick={() => setTab("today")} icon={<Activity size={18} />} label="Today" tabKey="today" />
+          <NavButton active={tab === "history"} onClick={() => setTab("history")} icon={<CalendarDays size={18} />} label="History" tabKey="history" />
+          <NavButton active={tab === "insights"} onClick={() => setTab("insights")} icon={<Brain size={18} />} label="Intel" tabKey="insights" />
         </div>
       </nav>
     </div>
