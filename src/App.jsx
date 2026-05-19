@@ -35,7 +35,31 @@ const BONUS_HABITS = [
 ];
 
 const MAX_CORE_POINTS = 110;
-const STORAGE_KEY = "momentum-os-v8";
+const STORAGE_KEY = "momentum-os-v9";
+
+const TIER_MESSAGES = {
+  stable: [
+    "You Did Enough To Keep Momentum Alive. Stack Enough Of These And Your Life Changes.",
+    "Motivation Didn’t Save You Today. Standards Did.",
+    "Nobody Talks About This Part. The Quiet Reps Are What Build People.",
+    "Discipline Equals Freedom. — Jocko Willink",
+    "Discipline Equals Freedom. — Jocko Willink",
+  ],
+  elite: [
+    "Separation Starts Here.",
+    "You Didn’t Just Survive The Day. You Drove It.",
+    "This Is Where Confidence Actually Comes From. Kept Promises.",
+    "When You’re Tired And Still Execute, That’s Who You Really Are.",
+    "You Protected The Standard Today.",
+  ],
+  overdrive: [
+    "Very Few People Operate Here Consistently.",
+    "This Is What Full Alignment Feels Like.",
+    "Days Like This Change Trajectories.",
+    "Most People Negotiate With Themselves All Day. You Didn’t.",
+    "Real Confidence Comes From Evidence.",
+  ],
+};
 
 function todayKey() {
   const d = new Date();
@@ -66,6 +90,18 @@ function monthDays(dateKey) {
   });
 
   return [...blanks, ...days];
+}
+
+function monthKey(dateKey) {
+  return dateKey.slice(0, 7);
+}
+
+function monthLabel(month) {
+  const [year, m] = month.split("-");
+  return new Date(Number(year), Number(m) - 1, 1).toLocaleString("default", {
+    month: "short",
+    year: "numeric",
+  });
 }
 
 function defaultDay() {
@@ -140,6 +176,92 @@ function getHeatClass(day) {
   return "bg-[#102338] text-[#86a7c2]";
 }
 
+function getRandomMessage(tierKey) {
+  const messages = TIER_MESSAGES[tierKey] || [];
+  if (!messages.length) return "";
+  return messages[Math.floor(Math.random() * messages.length)];
+}
+
+function getSectionScore(day, section) {
+  const habits = CORE_HABITS.filter((h) => h.group === section);
+  const earned = habits.reduce((sum, h) => sum + (day.core?.[h.id] ? h.points : 0), 0);
+  const max = habits.reduce((sum, h) => sum + h.points, 0);
+  const percent = max ? Math.round((earned / max) * 100) : 0;
+
+  return { earned, max, percent };
+}
+
+function monthlyStats(data, targetMonth) {
+  const keys = Object.keys(data).filter((k) => monthKey(k) === targetMonth);
+
+  if (!keys.length) {
+    return {
+      month: targetMonth,
+      avg: 0,
+      drift: 0,
+      stable: 0,
+      elite: 0,
+      overdrive: 0,
+      bestStreak: 0,
+      days: 0,
+    };
+  }
+
+  let drift = 0;
+  let stable = 0;
+  let elite = 0;
+  let overdrive = 0;
+  let totalPct = 0;
+  let currentStreak = 0;
+  let bestStreak = 0;
+
+  keys.sort().forEach((k) => {
+    const score = completionFor(data[k]);
+    totalPct += score.totalPercent;
+
+    if (score.totalPercent >= 109) overdrive += 1;
+    else if (score.core >= 95) elite += 1;
+    else if (score.core >= 60) stable += 1;
+    else drift += 1;
+
+    if (score.core >= 60) {
+      currentStreak += 1;
+      bestStreak = Math.max(bestStreak, currentStreak);
+    } else {
+      currentStreak = 0;
+    }
+  });
+
+  return {
+    month: targetMonth,
+    avg: Math.round(totalPct / keys.length),
+    drift,
+    stable,
+    elite,
+    overdrive,
+    bestStreak,
+    days: keys.length,
+  };
+}
+
+function allTimeStats(data) {
+  const keys = Object.keys(data);
+
+  return keys.reduce(
+    (acc, k) => {
+      const score = completionFor(data[k]);
+
+      if (score.totalPercent >= 109) acc.overdrive += 1;
+      else if (score.core >= 95) acc.elite += 1;
+      else if (score.core >= 60) acc.stable += 1;
+      else acc.drift += 1;
+
+      return acc;
+    },
+    { drift: 0, stable: 0, elite: 0, overdrive: 0 }
+  );
+}
+
 function ProgressRing({ score }) {
   const clamped = Math.max(0, Math.min(100, score.corePercent));
   const tier = getTier(score);
@@ -156,13 +278,9 @@ function ProgressRing({ score }) {
       <div className="absolute inset-3 rounded-full border border-[#1d3a55] bg-[#07111f]" />
 
       <div className="relative text-center">
-        <div className="text-4xl font-black tracking-tight text-white">
-          {score.core}
-        </div>
+        <div className="text-4xl font-black tracking-tight text-white">{score.core}</div>
 
-        <div className="text-xs font-semibold text-[#9fb7cc]">
-          / 110 Points
-        </div>
+        <div className="text-xs font-semibold text-[#9fb7cc]">/ 110 Points</div>
 
         <div className="mt-1 text-xs font-black" style={{ color: tier.color }}>
           {tier.label}
@@ -191,7 +309,7 @@ function XpBurst({ burst }) {
   );
 }
 
-function TierPopup({ popup }) {
+function TierPopup({ popup, onClose }) {
   return (
     <AnimatePresence>
       {popup && (
@@ -199,10 +317,10 @@ function TierPopup({ popup }) {
           <motion.div
             key={`${popup.id}-flash`}
             initial={{ opacity: 0 }}
-            animate={{ opacity: 0.2 }}
+            animate={{ opacity: 0.22 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.35 }}
-            className="pointer-events-none fixed inset-0 z-40"
+            className="fixed inset-0 z-40"
             style={{ backgroundColor: popup.color }}
           />
 
@@ -212,12 +330,12 @@ function TierPopup({ popup }) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.92, y: -8 }}
             transition={{ duration: 0.45 }}
-            className="pointer-events-none fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2"
+            className="fixed left-1/2 top-1/2 z-50 w-[86%] max-w-sm -translate-x-1/2 -translate-y-1/2"
           >
             <div
-              className="rounded-[2rem] border-2 px-10 py-8 text-center shadow-2xl backdrop-blur-xl"
+              className="rounded-[2rem] border-2 px-7 py-7 text-center shadow-2xl backdrop-blur-xl"
               style={{
-                backgroundColor: "rgba(7,17,31,.94)",
+                backgroundColor: "rgba(7,17,31,.96)",
                 borderColor: popup.color,
                 boxShadow: `0 0 55px ${popup.color}55`,
               }}
@@ -229,9 +347,17 @@ function TierPopup({ popup }) {
                 {popup.label}
               </div>
 
-              <div className="mt-2 text-xs font-black uppercase tracking-[0.25em] text-[#9fb7cc]">
-                Tier Unlocked
-              </div>
+              <p className="mt-4 text-sm font-bold leading-6 text-slate-100">
+                {popup.message}
+              </p>
+
+              <button
+                type="button"
+                onClick={onClose}
+                className="mt-6 w-full rounded-2xl border border-[#7BAFD4]/30 bg-[#102f4a] px-4 py-3 text-sm font-black text-[#7BAFD4]"
+              >
+                Continue
+              </button>
             </div>
           </motion.div>
         </>
@@ -240,14 +366,43 @@ function TierPopup({ popup }) {
   );
 }
 
-function HabitRow({ habit, checked, locked = false, onToggle, bonus = false }) {
+function SectionProgress({ section, day }) {
+  const { earned, max, percent } = getSectionScore(day, section);
+
+  return (
+    <div className="mb-3 rounded-2xl border border-[#1d3a55] bg-[#07111f]/40 p-3">
+      <div className="mb-2 flex items-center justify-between">
+        <div className="text-xs font-black uppercase tracking-widest text-[#7BAFD4]">
+          {section}
+        </div>
+
+        <div className="text-xs font-black text-[#ffd84d]">
+          {earned}/{max}
+        </div>
+      </div>
+
+      <div className="h-2 overflow-hidden rounded-full bg-[#102338]">
+        <motion.div
+          initial={false}
+          animate={{ width: `${percent}%` }}
+          transition={{ duration: 0.35 }}
+          className="h-full rounded-full bg-[#7BAFD4]"
+        />
+      </div>
+    </div>
+  );
+}
+
+function HabitRow({ habit, checked, locked = false, disabled = false, onToggle, bonus = false }) {
+  const isDisabled = locked || disabled;
+
   return (
     <motion.button
       type="button"
-      whileTap={{ scale: locked ? 1 : 0.98 }}
-      onClick={() => !locked && onToggle(habit)}
+      whileTap={{ scale: isDisabled ? 1 : 0.98 }}
+      onClick={() => !isDisabled && onToggle(habit)}
       className={`flex w-full items-center gap-3 border-b border-[#1d3a55]/70 px-3 py-4 text-left last:border-b-0 ${
-        locked ? "opacity-30" : ""
+        isDisabled ? "opacity-30" : ""
       }`}
     >
       <div
@@ -301,7 +456,7 @@ function NavButton({ active, onClick, icon, label }) {
   );
 }
 
-export default function MomentumOS() {
+export default function LifeScoreboard() {
   const [date, setDate] = useState(todayKey());
   const [tab, setTab] = useState("home");
   const [data, setData] = useState({});
@@ -339,20 +494,19 @@ export default function MomentumOS() {
   }, [date]);
 
   const rawDay = data[date] || defaultDay();
-  const day =
-    isPastDate(date) && !rawDay.closed ? { ...rawDay, closed: true } : rawDay;
+  const day = isPastDate(date) && !rawDay.closed ? { ...rawDay, closed: true } : rawDay;
 
   const score = completionFor(day);
   const loggedKeys = Object.keys(data).sort();
+  const selectedMonth = monthKey(date);
+  const thisMonthStats = monthlyStats(data, selectedMonth);
+  const totals = allTimeStats(data);
 
   const stats = useMemo(() => {
-    const last7 = Array.from({ length: 7 }, (_, i) =>
-      shiftDate(todayKey(), i - 6)
-    );
+    const last7 = Array.from({ length: 7 }, (_, i) => shiftDate(todayKey(), i - 6));
 
     const avg =
-      last7.reduce((sum, k) => sum + completionFor(data[k]).totalPercent, 0) /
-      7;
+      last7.reduce((sum, k) => sum + completionFor(data[k]).totalPercent, 0) / 7;
 
     let streak = 0;
     let cursor = todayKey();
@@ -362,9 +516,7 @@ export default function MomentumOS() {
       cursor = shiftDate(cursor, -1);
     }
 
-    const wins = loggedKeys.filter(
-      (k) => completionFor(data[k]).core >= 60
-    ).length;
+    const wins = loggedKeys.filter((k) => completionFor(data[k]).core >= 60).length;
 
     const bestStreak = loggedKeys.reduce(
       (acc, k) => {
@@ -429,6 +581,11 @@ export default function MomentumOS() {
     return rows;
   }, [data, loggedKeys.length, stats.avg]);
 
+  const monthlyComparison = useMemo(() => {
+    const months = [...new Set(Object.keys(data).map(monthKey))].sort().reverse();
+    return months.map((m) => monthlyStats(data, m));
+  }, [data]);
+
   function updateDay(updater) {
     setData((prev) => {
       const current = prev[date] || defaultDay();
@@ -465,14 +622,13 @@ export default function MomentumOS() {
       label: tier.label,
       color: tier.color,
       key: tier.key,
+      message: getRandomMessage(tier.key),
     });
-
-    setTimeout(() => {
-      setTierPopup((current) => (current?.id === id ? null : current));
-    }, 1400);
   }
 
   function toggleCore(habit) {
+    if (day.closed) return;
+
     const currently = Boolean(day.core?.[habit.id]);
 
     const updatedCore = {
@@ -499,6 +655,8 @@ export default function MomentumOS() {
   }
 
   function toggleBonus(habit) {
+    if (day.closed) return;
+
     const currently = Boolean(day.bonus?.[habit.id]);
 
     const updatedBonus = {
@@ -524,11 +682,16 @@ export default function MomentumOS() {
     }
   }
 
-  function closeDay() {
+  function toggleCloseDay() {
     updateDay((d) => ({
       ...d,
-      closed: true,
+      closed: !d.closed,
     }));
+  }
+
+  function openHistoryDay(dayKey) {
+    setDate(dayKey);
+    setTab("today");
   }
 
   const bonusUnlocked = score.corePercent >= 85;
@@ -538,9 +701,7 @@ export default function MomentumOS() {
     locked: !bonusUnlocked,
   }));
 
-  const last7 = Array.from({ length: 7 }, (_, i) =>
-    shiftDate(todayKey(), i - 6)
-  );
+  const last7 = Array.from({ length: 7 }, (_, i) => shiftDate(todayKey(), i - 6));
 
   const familyScore = ["phoneFamily", "school", "sports"].reduce(
     (sum, id) =>
@@ -554,13 +715,13 @@ export default function MomentumOS() {
   return (
     <div className="min-h-screen bg-[#07111f] bg-[radial-gradient(circle_at_15%_10%,rgba(123,175,212,.22),transparent_28%),radial-gradient(circle_at_88%_18%,rgba(255,138,61,.16),transparent_30%)] px-4 pb-28 pt-5 text-slate-100">
       <XpBurst burst={burst} />
-      <TierPopup popup={tierPopup} />
+      <TierPopup popup={tierPopup} onClose={() => setTierPopup(null)} />
 
       <div className="mx-auto max-w-md">
         <header className="mb-4 flex items-start justify-between gap-3">
           <div>
             <h1 className="text-4xl font-black tracking-tighter text-[#7BAFD4]">
-              Momentum OS
+              Life Scoreboard
             </h1>
 
             <p className="mt-1 text-sm text-[#9fb7cc]">
@@ -577,10 +738,7 @@ export default function MomentumOS() {
         </header>
 
         {tab === "home" && (
-          <motion.main
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
+          <motion.main initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <section className="rounded-[2rem] border border-[#1d3a55] bg-[#0d1b2a]/95 p-5 shadow-2xl shadow-black/30">
               <ProgressRing score={score} />
 
@@ -595,9 +753,9 @@ export default function MomentumOS() {
               </div>
 
               <div className="mt-5 grid grid-cols-3 gap-2">
-                <Stat label="Streak" value={stats.streak} />
-                <Stat label="7-Day" value={`${stats.avg}%`} />
-                <Stat label="Stable Days" value={stats.wins} />
+                <Stat label="This Month Stable" value={thisMonthStats.stable} />
+                <Stat label="This Month Elite" value={thisMonthStats.elite} />
+                <Stat label="Overdrive" value={thisMonthStats.overdrive} />
               </div>
 
               <div className="mt-4 rounded-2xl border border-[#ff8a3d]/30 bg-[#ff8a3d]/15 p-3 text-sm font-bold text-[#ffd6b9]">
@@ -623,11 +781,12 @@ export default function MomentumOS() {
                     key={h.id}
                     type="button"
                     onClick={() => toggleCore(h)}
+                    disabled={day.closed}
                     className={`flex items-center justify-between rounded-2xl border px-3 py-3 text-left text-sm font-bold ${
                       day.core?.[h.id]
                         ? "border-emerald-300/30 bg-emerald-400/20 text-emerald-100"
                         : "border-[#1d3a55] bg-[#102338] text-slate-300"
-                    }`}
+                    } ${day.closed ? "opacity-40" : ""}`}
                   >
                     <span>{h.label}</span>
                     <span className="text-[#ffd84d]">+{h.points}</span>
@@ -639,10 +798,7 @@ export default function MomentumOS() {
             <section className="mt-4 rounded-[1.7rem] border border-[#1d3a55] bg-[#0d1b2a]/95 p-4">
               <div className="mb-3 flex items-center justify-between">
                 <div>
-                  <div className="font-black text-[#7BAFD4]">
-                    Last 7 Days
-                  </div>
-
+                  <div className="font-black text-[#7BAFD4]">Last 7 Days</div>
                   <div className="text-xs text-[#86a7c2]">Heat Strip</div>
                 </div>
               </div>
@@ -653,8 +809,10 @@ export default function MomentumOS() {
                   const heatClass = getHeatClass(dayData);
 
                   return (
-                    <div
+                    <button
                       key={k}
+                      type="button"
+                      onClick={() => openHistoryDay(k)}
                       className={`h-10 rounded-xl border border-[#1d3a55] ${heatClass}`}
                     />
                   );
@@ -663,9 +821,7 @@ export default function MomentumOS() {
             </section>
 
             <section className="mt-4 rounded-[1.7rem] border border-[#1d3a55] bg-[#0d1b2a]/95 p-4">
-              <div className="font-black text-[#7BAFD4]">
-                Latest Insight
-              </div>
+              <div className="font-black text-[#7BAFD4]">Latest Insight</div>
 
               <p className="mt-2 text-sm leading-6 text-slate-300">
                 {insights[0]}
@@ -675,16 +831,13 @@ export default function MomentumOS() {
         )}
 
         {tab === "today" && (
-          <motion.main
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
+          <motion.main initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <section className="rounded-[1.7rem] border border-[#1d3a55] bg-[#0d1b2a]/95 p-4">
               <div className="mb-2 flex items-center justify-between">
                 <div>
                   <div className="font-black text-[#7BAFD4]">Core XP</div>
                   <div className="text-xs text-[#86a7c2]">
-                    Always Available
+                    {day.closed ? "Day Locked" : "Always Available"}
                   </div>
                 </div>
 
@@ -703,8 +856,8 @@ export default function MomentumOS() {
                     key={section}
                     className="mb-4 overflow-hidden rounded-3xl border border-[#1d3a55] bg-[#102338] last:mb-0"
                   >
-                    <div className="border-b border-[#1d3a55] bg-[#07111f]/60 px-4 py-3 text-xs font-black uppercase tracking-widest text-[#86a7c2]">
-                      {section}
+                    <div className="border-b border-[#1d3a55] bg-[#07111f]/60 px-4 py-3">
+                      <SectionProgress section={section} day={day} />
                     </div>
 
                     {habits.map((h) => (
@@ -712,6 +865,7 @@ export default function MomentumOS() {
                         key={h.id}
                         habit={h}
                         checked={Boolean(day.core?.[h.id])}
+                        disabled={day.closed}
                         onToggle={toggleCore}
                       />
                     ))}
@@ -741,27 +895,36 @@ export default function MomentumOS() {
                     habit={h}
                     checked={Boolean(day.bonus?.[h.id])}
                     locked={h.locked}
+                    disabled={day.closed}
                     onToggle={toggleBonus}
                     bonus
                   />
                 ))}
               </div>
             </section>
+
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              type="button"
+              onClick={toggleCloseDay}
+              className={`mt-4 w-full rounded-[1.75rem] border-2 border-black px-6 py-6 text-lg font-black tracking-tight text-white shadow-2xl ${
+                day.closed
+                  ? "bg-slate-600 shadow-slate-500/20"
+                  : "bg-emerald-500 shadow-emerald-500/20"
+              }`}
+            >
+              {day.closed ? "🔓 Unlock Day" : "🏁 Finish Day"}
+            </motion.button>
           </motion.main>
         )}
 
         {tab === "history" && (
-          <motion.main
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
+          <motion.main initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <section className="rounded-[1.7rem] border border-[#1d3a55] bg-[#0d1b2a]/95 p-4">
               <div className="mb-4 flex items-center justify-between">
                 <div>
                   <div className="font-black text-[#7BAFD4]">History</div>
-                  <div className="text-xs text-[#86a7c2]">
-                    Monthly Heatmap
-                  </div>
+                  <div className="text-xs text-[#86a7c2]">Monthly Heatmap</div>
                 </div>
 
                 <div className="text-sm font-black text-slate-300">
@@ -783,39 +946,79 @@ export default function MomentumOS() {
                   const heatClass = getHeatClass(dayData);
 
                   return (
-                    <div
+                    <button
                       key={k}
+                      type="button"
+                      onClick={() => openHistoryDay(k)}
                       className={`grid aspect-square place-items-center rounded-xl border border-[#1d3a55] text-xs font-black ${heatClass}`}
                     >
                       {new Date(k + "T00:00:00").getDate()}
-                    </div>
+                    </button>
                   );
                 })}
               </div>
             </section>
 
             <section className="mt-4 rounded-[1.7rem] border border-[#1d3a55] bg-[#0d1b2a]/95 p-4">
-              <div className="mb-3 text-xs font-black uppercase tracking-widest text-[#86a7c2]">
-                {day.closed ? "Closed" : "Open"}
-              </div>
+              <div className="font-black text-[#7BAFD4]">All-Time Stats</div>
 
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                type="button"
-                onClick={closeDay}
-                className="w-full rounded-[1.75rem] border-2 border-black bg-emerald-500 px-6 py-6 text-lg font-black tracking-tight text-white shadow-2xl shadow-emerald-500/20"
-              >
-                {day.closed ? "Day Closed" : "Daily Closeout"}
-              </motion.button>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <Stat label="Drift Days" value={totals.drift} />
+                <Stat label="Stable Days" value={totals.stable} />
+                <Stat label="Elite Days" value={totals.elite} />
+                <Stat label="Overdrive Days" value={totals.overdrive} />
+              </div>
+            </section>
+
+            <section className="mt-4 rounded-[1.7rem] border border-[#1d3a55] bg-[#0d1b2a]/95 p-4">
+              <div className="font-black text-[#7BAFD4]">Monthly Comparison</div>
+
+              <div className="mt-3 space-y-3">
+                {monthlyComparison.length ? (
+                  monthlyComparison.map((m) => (
+                    <div
+                      key={m.month}
+                      className="rounded-2xl border border-[#1d3a55] bg-[#102338] p-3"
+                    >
+                      <div className="mb-2 flex items-center justify-between">
+                        <div className="font-black text-white">{monthLabel(m.month)}</div>
+                        <div className="font-black text-[#ffd84d]">{m.avg}% Avg XP</div>
+                      </div>
+
+                      <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                        <div>
+                          <div className="font-black text-red-300">{m.drift}</div>
+                          <div className="text-[#86a7c2]">Drift</div>
+                        </div>
+                        <div>
+                          <div className="font-black text-[#fb923c]">{m.stable}</div>
+                          <div className="text-[#86a7c2]">Stable</div>
+                        </div>
+                        <div>
+                          <div className="font-black text-emerald-300">{m.elite}</div>
+                          <div className="text-[#86a7c2]">Elite</div>
+                        </div>
+                        <div>
+                          <div className="font-black text-[#b8860b]">{m.overdrive}</div>
+                          <div className="text-[#86a7c2]">Overdrive</div>
+                        </div>
+                      </div>
+
+                      <div className="mt-2 text-xs font-bold text-[#86a7c2]">
+                        Best Streak: {m.bestStreak}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-sm text-[#86a7c2]">No Month Data Yet.</div>
+                )}
+              </div>
             </section>
           </motion.main>
         )}
 
         {tab === "insights" && (
-          <motion.main
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
+          <motion.main initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <section className="rounded-[1.7rem] border border-[#1d3a55] bg-[#0d1b2a]/95 p-4">
               <div className="font-black text-[#7BAFD4]">
                 Pattern Intelligence
