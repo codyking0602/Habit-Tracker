@@ -9,6 +9,54 @@ import {
   Sparkles,
 } from "lucide-react";
 
+const COLORS = {
+  home: {
+    bg: "#07111f",
+    bgGlow1: "rgba(123,175,212,.22)",
+    bgGlow2: "rgba(255,138,61,.16)",
+    title: "#7BAFD4",
+    card: "#0d1b2a",
+    card2: "#102338",
+    border: "#1d3a55",
+    accent: "#ff8a3d",
+    textMuted: "#9fb7cc",
+  },
+  today: {
+    bg: "#071a1d",
+    bgGlow1: "rgba(0,178,169,.18)",
+    bgGlow2: "rgba(236,0,140,.12)",
+    title: "#00B2A9",
+    card: "#0c2528",
+    card2: "#0f3034",
+    border: "#00B2A9",
+    accent: "#F05A28",
+    progress: "#EC008C",
+    textMuted: "rgba(255,255,255,.55)",
+  },
+  history: {
+    bg: "#14072f",
+    bgGlow1: "rgba(229,96,32,.20)",
+    bgGlow2: "rgba(249,160,27,.14)",
+    title: "#F9A01B",
+    card: "#1D1160",
+    card2: "#24104f",
+    border: "#E56020",
+    accent: "#F9A01B",
+    textMuted: "rgba(255,255,255,.55)",
+  },
+  intel: {
+    bg: "#121212",
+    bgGlow1: "rgba(191,87,0,.18)",
+    bgGlow2: "rgba(255,255,255,.03)",
+    title: "#BF5700",
+    card: "#171717",
+    card2: "#222222",
+    border: "#3f3f46",
+    accent: "#BF5700",
+    textMuted: "rgba(255,255,255,.55)",
+  },
+};
+
 const CORE_SECTIONS = ["Body", "Focus", "Family", "Recovery", "Nutrition", "Mind"];
 
 const SECTION_COLORS = {
@@ -70,37 +118,48 @@ const TIER_MESSAGES = {
   ],
 };
 
-function playTone(type = "click") {
+function playSound(type = "click") {
   try {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     const ctx = new AudioContext();
-    const osc = ctx.createOscillator();
+    const now = ctx.currentTime;
+
     const gain = ctx.createGain();
+    gain.connect(ctx.destination);
 
-    const settings = {
-      click: { freq: 420, end: 0.045, gain: 0.025, type: "triangle" },
-      xp: { freq: 760, end: 0.08, gain: 0.035, type: "sine" },
-      stable: { freq: 150, end: 0.18, gain: 0.06, type: "sine" },
-      elite: { freq: 520, end: 0.22, gain: 0.065, type: "triangle" },
-      overdrive: { freq: 95, end: 0.32, gain: 0.085, type: "sawtooth" },
-    }[type];
-
-    osc.type = settings.type;
-    osc.frequency.setValueAtTime(settings.freq, ctx.currentTime);
-    if (type === "xp" || type === "elite") {
-      osc.frequency.exponentialRampToValueAtTime(settings.freq * 1.45, ctx.currentTime + settings.end);
+    if (type === "click") {
+      const osc = ctx.createOscillator();
+      osc.type = "square";
+      osc.frequency.setValueAtTime(2600, now);
+      osc.connect(gain);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.035, now + 0.002);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.025);
+      osc.start(now);
+      osc.stop(now + 0.03);
+      return;
     }
 
-    gain.gain.setValueAtTime(settings.gain, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + settings.end);
+    const osc = ctx.createOscillator();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(type === "overdrive" ? 160 : 220, now);
+    osc.frequency.exponentialRampToValueAtTime(
+      type === "overdrive" ? 360 : type === "elite" ? 520 : 420,
+      now + 0.08
+    );
 
     osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + settings.end);
-  } catch {
-    // audio may be blocked until user interaction; ignore safely
-  }
+
+    const volume =
+      type === "overdrive" ? 0.12 : type === "elite" ? 0.09 : 0.07;
+
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(volume, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.13);
+
+    osc.start(now);
+    osc.stop(now + 0.15);
+  } catch {}
 }
 
 function todayKey() {
@@ -203,7 +262,6 @@ function getNextMove(day, score) {
   const picks = [body, family, focus, nutrition].filter(Boolean).slice(0, 2);
 
   if (!picks.length) return `${60 - score.core} Core Points To Stabilize The Day.`;
-
   return picks.map((p) => p.label).join(" + ");
 }
 
@@ -226,7 +284,10 @@ function getRandomMessage(tierKey) {
 
 function getSectionScore(day, section) {
   const habits = CORE_HABITS.filter((h) => h.group === section);
-  const earned = habits.reduce((sum, h) => sum + (day.core?.[h.id] ? h.points : 0), 0);
+  const earned = habits.reduce(
+    (sum, h) => sum + (day.core?.[h.id] ? h.points : 0),
+    0
+  );
   const max = habits.reduce((sum, h) => sum + h.points, 0);
   const percent = max ? Math.round((earned / max) * 100) : 0;
 
@@ -320,8 +381,14 @@ function ProgressRing({ score }) {
       <div className="absolute inset-3 rounded-full border border-[#1d3a55] bg-[#07111f]" />
 
       <div className="relative text-center">
-        <div className="text-4xl font-black tracking-tight text-white">{score.core}</div>
-        <div className="text-xs font-semibold text-[#9fb7cc]">/ 110 Points</div>
+        <div className="text-4xl font-black tracking-tight text-white">
+          {score.core}
+        </div>
+
+        <div className="text-xs font-semibold text-[#9fb7cc]">
+          / 110 Points
+        </div>
+
         <div className="mt-1 text-xs font-black" style={{ color: tier.color }}>
           {tier.label}
         </div>
@@ -393,7 +460,10 @@ function TierPopup({ popup, onClose }) {
 
               <button
                 type="button"
-                onClick={onClose}
+                onClick={() => {
+                  playSound("click");
+                  onClose();
+                }}
                 className="mt-6 w-full rounded-2xl border border-[#7BAFD4]/30 bg-[#102f4a] px-4 py-3 text-sm font-black text-[#7BAFD4]"
               >
                 Continue
@@ -406,12 +476,12 @@ function TierPopup({ popup, onClose }) {
   );
 }
 
-function SectionProgress({ section, day, theme = "dark" }) {
+function SectionProgress({ section, day }) {
   const { earned, max, percent } = getSectionScore(day, section);
-  const color = SECTION_COLORS[section] || "#7BAFD4";
+  const color = SECTION_COLORS[section] || COLORS.today.progress;
 
   return (
-    <div className="mb-3 rounded-2xl border border-white/10 bg-white/[.04] p-3">
+    <div className="mb-2 rounded-2xl border border-white/10 bg-white/[.035] p-3">
       <div className="mb-2 flex items-center justify-between">
         <div className="text-xs font-black uppercase tracking-widest text-white/80">
           {section}
@@ -422,7 +492,7 @@ function SectionProgress({ section, day, theme = "dark" }) {
         </div>
       </div>
 
-      <div className="h-2 overflow-hidden rounded-full bg-black/25">
+      <div className="h-1.5 overflow-hidden rounded-full bg-black/30">
         <motion.div
           initial={false}
           animate={{ width: `${percent}%` }}
@@ -516,7 +586,10 @@ function NavButton({ active, onClick, icon, label, tabKey }) {
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={() => {
+        playSound("click");
+        onClick();
+      }}
       className={`flex flex-col items-center gap-1 rounded-2xl py-2 text-xs font-black transition ${
         active ? NAV_STYLES[tabKey] : "text-[#6f8ba3]"
       }`}
@@ -692,7 +765,6 @@ export default function LifeScoreboard() {
     const id = Date.now();
 
     setBurst({ id, points });
-    playTone("xp");
 
     setTimeout(() => {
       setBurst((b) => (b?.id === id ? null : b));
@@ -707,7 +779,7 @@ export default function LifeScoreboard() {
 
     setTriggeredTiers((prev) => [...prev, tier.key]);
 
-    playTone(tier.key);
+    playSound("pop");
 
     const id = Date.now();
 
@@ -723,7 +795,7 @@ export default function LifeScoreboard() {
   function toggleCore(habit) {
     if (day.closed) return;
 
-    playTone("click");
+    playSound("click");
 
     const currently = Boolean(day.core?.[habit.id]);
 
@@ -745,6 +817,7 @@ export default function LifeScoreboard() {
     }));
 
     if (!currently) {
+      playSound("pop");
       triggerBurst(habit.points);
       triggerTier(updatedScore);
     }
@@ -753,7 +826,7 @@ export default function LifeScoreboard() {
   function toggleBonus(habit) {
     if (day.closed) return;
 
-    playTone("click");
+    playSound("click");
 
     const currently = Boolean(day.bonus?.[habit.id]);
 
@@ -775,13 +848,14 @@ export default function LifeScoreboard() {
     }));
 
     if (!currently) {
+      playSound("pop");
       triggerBurst(habit.points);
       triggerTier(updatedScore);
     }
   }
 
   function toggleCloseDay() {
-    playTone("click");
+    playSound("click");
 
     updateDay((d) => ({
       ...d,
@@ -790,7 +864,7 @@ export default function LifeScoreboard() {
   }
 
   function openHistoryDay(dayKey) {
-    playTone("click");
+    playSound("click");
     setDate(dayKey);
     setTab("today");
   }
@@ -815,12 +889,12 @@ export default function LifeScoreboard() {
 
   const appBg =
     tab === "today"
-      ? "min-h-screen bg-[#071b1d] bg-[radial-gradient(circle_at_15%_10%,rgba(0,178,169,.18),transparent_28%),radial-gradient(circle_at_85%_15%,rgba(236,0,140,.12),transparent_30%)] px-4 pb-28 pt-5 text-slate-100"
+      ? `min-h-screen bg-[${COLORS.today.bg}] bg-[radial-gradient(circle_at_15%_10%,${COLORS.today.bgGlow1},transparent_28%),radial-gradient(circle_at_88%_18%,${COLORS.today.bgGlow2},transparent_30%)] px-4 pb-28 pt-5 text-slate-100`
       : tab === "history"
-      ? "min-h-screen bg-[#14072f] bg-[radial-gradient(circle_at_20%_10%,rgba(229,96,32,.20),transparent_28%),radial-gradient(circle_at_85%_18%,rgba(249,160,27,.14),transparent_30%)] px-4 pb-28 pt-5 text-slate-100"
+      ? `min-h-screen bg-[${COLORS.history.bg}] bg-[radial-gradient(circle_at_20%_10%,${COLORS.history.bgGlow1},transparent_28%),radial-gradient(circle_at_85%_18%,${COLORS.history.bgGlow2},transparent_30%)] px-4 pb-28 pt-5 text-slate-100`
       : tab === "insights"
-      ? "min-h-screen bg-[#121212] bg-[radial-gradient(circle_at_18%_10%,rgba(191,87,0,.18),transparent_28%)] px-4 pb-28 pt-5 text-slate-100"
-      : "min-h-screen bg-[#07111f] bg-[radial-gradient(circle_at_15%_10%,rgba(123,175,212,.22),transparent_28%),radial-gradient(circle_at_88%_18%,rgba(255,138,61,.16),transparent_30%)] px-4 pb-28 pt-5 text-slate-100";
+      ? `min-h-screen bg-[${COLORS.intel.bg}] bg-[radial-gradient(circle_at_18%_10%,${COLORS.intel.bgGlow1},transparent_28%)] px-4 pb-28 pt-5 text-slate-100`
+      : `min-h-screen bg-[${COLORS.home.bg}] bg-[radial-gradient(circle_at_15%_10%,${COLORS.home.bgGlow1},transparent_28%),radial-gradient(circle_at_88%_18%,${COLORS.home.bgGlow2},transparent_30%)] px-4 pb-28 pt-5 text-slate-100`;
 
   return (
     <div className={appBg}>
@@ -831,15 +905,17 @@ export default function LifeScoreboard() {
         <header className="mb-4 flex items-start justify-between gap-3">
           <div>
             <h1
-              className={
-                tab === "today"
-                  ? "text-4xl font-black tracking-tighter text-[#00B2A9]"
-                  : tab === "history"
-                  ? "text-4xl font-black tracking-tighter text-[#F9A01B]"
-                  : tab === "insights"
-                  ? "text-4xl font-black tracking-tighter text-[#BF5700]"
-                  : "text-4xl font-black tracking-tighter text-[#7BAFD4]"
-              }
+              className="text-4xl font-black tracking-tighter"
+              style={{
+                color:
+                  tab === "today"
+                    ? COLORS.today.title
+                    : tab === "history"
+                    ? COLORS.history.title
+                    : tab === "insights"
+                    ? COLORS.intel.title
+                    : COLORS.home.title,
+              }}
             >
               Life Scoreboard
             </h1>
@@ -970,7 +1046,7 @@ export default function LifeScoreboard() {
                     className="mb-4 overflow-hidden rounded-3xl border border-[#00B2A9]/20 bg-[#0f3034] last:mb-0"
                   >
                     <div className="border-b border-[#00B2A9]/20 bg-black/10 px-4 py-3">
-                      <SectionProgress section={section} day={day} theme="today" />
+                      <SectionProgress section={section} day={day} />
                     </div>
 
                     {habits.map((h) => (
