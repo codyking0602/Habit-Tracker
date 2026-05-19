@@ -26,7 +26,7 @@ const COLORS = {
     bgGlow1: "rgba(0,178,169,.18)",
     bgGlow2: "rgba(236,0,140,.12)",
     title: "#EF426F",
-    card: "#0c2528",
+    card: "#00B2A9",
     card2: "#0f3034",
     border: "#00B2A9",
     accent: "#F05A28",
