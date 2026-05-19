@@ -51,7 +51,7 @@ const COLORS = {
     title: "#BF5700",
     card: "#171717",
     card2: "#222222",
-    border: "#3f3f46",
+    border: "#BF5700",
     accent: "#BF5700",
     textMuted: "rgba(255,255,255,.55)",
   },
