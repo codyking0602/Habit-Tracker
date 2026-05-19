@@ -99,22 +99,32 @@ const TIER_MESSAGES = {
     "You Did Enough To Keep Momentum Alive. Stack Enough Of These And Your Life Changes.",
     "Motivation Didn’t Save You Today. Standards Did.",
     "Nobody Talks About This Part. The Quiet Reps Are What Build People.",
-    "Discipline Equals Freedom. — Jocko Willink",
-    "Discipline Equals Freedom. — Jocko Willink",
+    "A focused fool can accomplish more than a distracted genius.",
+    “Repetition is the mother of mastery.”,
+    "Your actions reflect your priorities.”,
+    “Nobody is coming to save you.”,
+    “You’re not overwhelmed. You’re under-prioritized.”,
+    "You Protected The Standard Today.",
+    “Most people don’t fail because they’re not capable; they fail because they’re not consistent.”,
+    "You are in danger of living a life so comfortable and soft, that you will die without ever realizing your true potential.",
   ],
   elite: [
     "Separation Starts Here.",
+    “The people who win are the ones who’re willing to do the work long after others have stopped.”,
     "You Didn’t Just Survive The Day. You Drove It.",
     "This Is Where Confidence Actually Comes From. Kept Promises.",
     "When You’re Tired And Still Execute, That’s Who You Really Are.",
-    "You Protected The Standard Today.",
+    "Don't stop when you're tired. Stop when you're done.",
+    "Real Confidence Comes From Evidence.",
+    “There is no better way to grow as a person than do everyday something you hate.”,
   ],
   overdrive: [
     "Very Few People Operate Here Consistently.",
+    “The more you do, the more you can do.”,
+    “Your future is built by the choices you make when no one is watching.”,
     "This Is What Full Alignment Feels Like.",
     "Days Like This Change Trajectories.",
     "Most People Negotiate With Themselves All Day. You Didn’t.",
-    "Real Confidence Comes From Evidence.",
   ],
 };
 
@@ -935,7 +945,7 @@ export default function LifeScoreboard() {
             </h1>
 
             <p className="mt-1 text-sm text-white/55">
-              Consistency Compounds.
+              Discipline Equals Freedom.
             </p>
           </div>
 
