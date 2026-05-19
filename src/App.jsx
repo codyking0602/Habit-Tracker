@@ -22,10 +22,10 @@ const COLORS = {
     textMuted: "#9fb7cc",
   },
   today: {
-    bg: "#071a1d",
+    bg: "#00B2A9",
     bgGlow1: "rgba(0,178,169,.18)",
     bgGlow2: "rgba(236,0,140,.12)",
-    title: "#00B2A9",
+    title: "#EF426F",
     card: "#0c2528",
     card2: "#0f3034",
     border: "#00B2A9",
