@@ -289,9 +289,6 @@ function getHeatClass(dayKey, day) {
   return "bg-red-500/25 text-slate-200";
 }
 
-  return "bg-[#102338] text-[#86a7c2]";
-}
-
 function getRandomMessage(tierKey) {
   const messages = TIER_MESSAGES[tierKey] || [];
   if (!messages.length) return "";
