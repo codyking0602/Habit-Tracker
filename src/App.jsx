@@ -833,7 +833,7 @@ export default function LifeScoreboard() {
     let streak = 0;
     let cursor = shouldCountDay(todayKey(), data[todayKey()])   ? todayKey()   : shiftDate(todayKey(), -1);
 
-    while (completionFor(data[cursor]).core >= 60) {
+    while (shouldCountDay(cursor, data[cursor]) && completionFor(data[cursor]).core >= 60) {
       streak += 1;
       cursor = shiftDate(cursor, -1);
     }
@@ -870,54 +870,7 @@ const weightData = useMemo(() => {
   const insights = useMemo(() => {
   return buildAdvancedInsights(data, loggedKeys, stats);
 }, [data, loggedKeys.length, stats]);
-
-    const rates = CORE_HABITS.map((h) => {
-      const done = loggedKeys.filter((k) => data[k]?.core?.[h.id]).length;
-
-      return {
-        ...h,
-        rate: Math.round((done / loggedKeys.length) * 100),
-      };
-    }).sort((a, b) => a.rate - b.rate);
-
-    const rows = [];
-
-    if (stats.avg < 60) {
-      rows.push(
-        "Drift Detected: 7-Day Average Is Below 60%. Tighten The Floor Before Adding More."
-      );
-    }
-
-    if ((rates.find((h) => h.id === "bed")?.rate ?? 100) < 50) {
-      rows.push("Bedtime Is Weak. That Usually Taxes Tomorrow Before It Starts.");
-    }
-
-    if ((rates.find((h) => h.id === "screen")?.rate ?? 100) < 50) {
-      rows.push("Phone Control Is Dragging Momentum. This Is A Leverage Point.");
-    }
-
-    const familyIds = ["phoneFamily", "school", "sports"];
-    const familyRate = Math.round(
-      familyIds.reduce(
-        (sum, id) => sum + (rates.find((h) => h.id === id)?.rate || 0),
-        0
-      ) / familyIds.length
-    );
-
-    if (familyRate < 60) {
-      rows.push("Family Presence Is Leaking. Keep The Windows Smaller And More Protected.");
-    }
-
-    rows.push(`Weakest Habit: ${rates[0].label} (${rates[0].rate}%).`);
-    rows.push(
-      `Strongest Habit: ${rates[rates.length - 1].label} (${
-        rates[rates.length - 1].rate
-      }%).`
-    );
-
-    return rows;
-  }, [data, loggedKeys.length, stats.avg]);
-
+    
   const monthlyComparison = useMemo(() => {
     const months = [   ...new Set(     Object.keys(data)       .filter((k) => shouldCountDay(k, data[k]))       .map(monthKey)   ), ]   .sort()   .reverse();
     return months.map((m) => monthlyStats(data, m));
