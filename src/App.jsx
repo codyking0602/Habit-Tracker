@@ -658,6 +658,126 @@ function average(numbers) {
   return numbers.reduce((a, b) => a + b, 0) / numbers.length;
 }
 
+function buildAdvancedInsights(data, loggedKeys, stats) {
+  if (!loggedKeys.length) return ["No Pattern Yet. Log A Few Days First."];
+
+  const scoreFor = (k) => completionFor(data[k]);
+  const has = (k, id) => Boolean(data[k]?.core?.[id]);
+
+  const avg = (arr) =>
+    arr.length ? Math.round(arr.reduce((s, n) => s + n, 0) / arr.length) : 0;
+
+  const stablePlus = (k) => scoreFor(k).core >= 60;
+  const elitePlus = (k) => scoreFor(k).core >= 95 || scoreFor(k).totalPercent >= 109;
+
+  const rows = [];
+
+  const last3 = loggedKeys.slice(-3);
+  if (last3.length === 3 && last3.every(stablePlus)) {
+    rows.push("Momentum Window Active: 3+ stable days in a row. Protect your inputs. Don’t get sloppy now.");
+  }
+
+  if (stats.avg < 60) {
+    rows.push("Drift Warning: 7-day average is below stable. Tighten the floor before adding more.");
+  }
+
+  for (let i = 3; i < loggedKeys.length; i++) {
+    const previousThree = loggedKeys.slice(i - 3, i);
+    if (previousThree.every(elitePlus) && scoreFor(loggedKeys[i]).core < 60) {
+      rows.push("Running Hot Pattern: high-output runs may be followed by a crash. Watch the swing.");
+      break;
+    }
+  }
+
+  const compareHabit = (id, label) => {
+    const withHabit = loggedKeys.filter((k) => has(k, id)).map((k) => scoreFor(k).totalPercent);
+    const withoutHabit = loggedKeys.filter((k) => !has(k, id)).map((k) => scoreFor(k).totalPercent);
+
+    if (withHabit.length >= 3 && withoutHabit.length >= 3) {
+      const withAvg = avg(withHabit);
+      const withoutAvg = avg(withoutHabit);
+
+      if (withAvg - withoutAvg >= 15) {
+        rows.push(`${label} Looks Like Leverage: ${withAvg}% average with it vs ${withoutAvg}% without it.`);
+      }
+    }
+  };
+
+  compareHabit("exercise", "Exercise");
+  compareHabit("deep", "Deep Work");
+
+  const missedScreen = loggedKeys.filter((k) => !has(k, "screen"));
+  if (missedScreen.length >= 3) {
+    const missedAvg = avg(missedScreen.map((k) => scoreFor(k).totalPercent));
+    const overallAvg = avg(loggedKeys.map((k) => scoreFor(k).totalPercent));
+
+    if (overallAvg - missedAvg >= 10) {
+      rows.push(`Phone Control Is The First Crack: missed screen-time days average ${missedAvg}% vs ${overallAvg}% overall.`);
+    }
+  }
+
+  const familyIds = ["phoneFamily", "school", "sports"];
+  const familyScore = (k) =>
+    familyIds.reduce((sum, id) => {
+      const habit = CORE_HABITS.find((h) => h.id === id);
+      return sum + (has(k, id) ? habit?.points || 0 : 0);
+    }, 0);
+
+  const highFamilyNextDays = [];
+  const lowFamilyNextDays = [];
+
+  loggedKeys.forEach((k, i) => {
+    const next = loggedKeys[i + 1];
+    if (!next) return;
+
+    if (familyScore(k) >= 15) highFamilyNextDays.push(scoreFor(next).totalPercent);
+    if (familyScore(k) <= 5) lowFamilyNextDays.push(scoreFor(next).totalPercent);
+  });
+
+  if (highFamilyNextDays.length >= 3 && lowFamilyNextDays.length >= 3) {
+    const highAvg = avg(highFamilyNextDays);
+    const lowAvg = avg(lowFamilyNextDays);
+
+    if (highAvg - lowAvg >= 10) {
+      rows.push(`Family Presence May Predict Tomorrow: ${highAvg}% after strong family days vs ${lowAvg}% after weak ones.`);
+    }
+  }
+
+  const months = [...new Set(loggedKeys.map(monthKey))].sort();
+  if (months.length >= 2) {
+    const current = monthlyStats(data, months[months.length - 1]);
+    const previous = monthlyStats(data, months[months.length - 2]);
+
+    if (current.drift < previous.drift) {
+      rows.push("Floor Rising: drift days are down month over month. That is the real win.");
+    }
+
+    const worstAvg = (month) => {
+      const scores = loggedKeys
+        .filter((k) => monthKey(k) === month)
+        .map((k) => scoreFor(k).totalPercent)
+        .sort((a, b) => a - b);
+
+      const count = Math.max(1, Math.ceil(scores.length * 0.25));
+      return avg(scores.slice(0, count));
+    };
+
+    if (worstAvg(months[months.length - 1]) > worstAvg(months[months.length - 2])) {
+      rows.push("Worst Days Are Improving: your floor is getting stronger, not just your highs.");
+    }
+  }
+
+  const rates = CORE_HABITS.map((h) => {
+    const done = loggedKeys.filter((k) => data[k]?.core?.[h.id]).length;
+    return { ...h, rate: Math.round((done / loggedKeys.length) * 100) };
+  }).sort((a, b) => a.rate - b.rate);
+
+  rows.push(`Weakest Habit: ${rates[0].label} (${rates[0].rate}%).`);
+  rows.push(`Strongest Habit: ${rates[rates.length - 1].label} (${rates[rates.length - 1].rate}%).`);
+
+  return rows;
+}
+
 export default function LifeScoreboard() {
   const [date, setDate] = useState(todayKey());
   const [tab, setTab] = useState("home");
@@ -748,7 +868,8 @@ const weightData = useMemo(() => {
 }, [data]);
   
   const insights = useMemo(() => {
-    if (!loggedKeys.length) return ["No Pattern Yet. Log A Few Days First."];
+  return buildAdvancedInsights(data, loggedKeys, stats);
+}, [data, loggedKeys.length, stats]);
 
     const rates = CORE_HABITS.map((h) => {
       const done = loggedKeys.filter((k) => data[k]?.core?.[h.id]).length;
