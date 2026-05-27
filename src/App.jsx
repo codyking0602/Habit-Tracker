@@ -727,11 +727,11 @@ export default function LifeScoreboard() {
 const weightData = useMemo(() => {
   return Object.keys(data)
     .sort()
-    .filter((k) => data[k]?.weight)
     .map((k) => ({
       date: k.slice(5),
-      weight: Number(data[k].weight),
-    }));
+      weight: Number(data[k]?.weight),
+    }))
+    .filter((x) => Number.isFinite(x.weight) && x.weight > 0);
 }, [data]);
   
   const insights = useMemo(() => {
@@ -1075,7 +1075,7 @@ function updateWeight(value) {
 
   <input
     value={day.weight || ""}
-    onChange={(e) => updateWeight(e.target.value)}
+    onChange={(e) => updateWeight(e.target.value === "" ? "" : e.target.value)}
     type="number"
     inputMode="decimal"
     placeholder="Enter weight"
