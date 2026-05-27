@@ -825,33 +825,44 @@ export default function LifeScoreboard() {
   const totals = allTimeStats(data);
 
   const stats = useMemo(() => {
-    const last7 = Array.from({ length: 7 }, (_, i) => shiftDate(todayKey(), i - 6));
+  const last7 = Array.from({ length: 7 }, (_, i) =>
+    shiftDate(todayKey(), i - 6)
+  ).filter((k) => shouldCountDay(k, data[k]));
 
-    const avg =
-      last7.reduce((sum, k) => sum + completionFor(data[k]).totalPercent, 0) / 7;
+  const avg = last7.length
+    ? last7.reduce((sum, k) => sum + completionFor(data[k]).totalPercent, 0) /
+      last7.length
+    : 0;
 
-    let streak = 0;
-    let cursor = shouldCountDay(todayKey(), data[todayKey()])   ? todayKey()   : shiftDate(todayKey(), -1);
+  let streak = 0;
+  let cursor = shouldCountDay(todayKey(), data[todayKey()])
+    ? todayKey()
+    : shiftDate(todayKey(), -1);
 
-    while (shouldCountDay(cursor, data[cursor]) && completionFor(data[cursor]).core >= 60) {
-      streak += 1;
-      cursor = shiftDate(cursor, -1);
-    }
+  while (
+    shouldCountDay(cursor, data[cursor]) &&
+    completionFor(data[cursor]).core >= 60
+  ) {
+    streak += 1;
+    cursor = shiftDate(cursor, -1);
+  }
 
-    const wins = loggedKeys.filter((k) => completionFor(data[k]).core >= 60).length;
+  const wins = loggedKeys.filter(
+    (k) => completionFor(data[k]).core >= 60
+  ).length;
 
-    const bestStreak = loggedKeys.reduce(
-      (acc, k) => {
-        const win = completionFor(data[k]).core >= 60;
-        const cur = win ? acc.cur + 1 : 0;
+  const bestStreak = loggedKeys.reduce(
+    (acc, k) => {
+      const win = completionFor(data[k]).core >= 60;
+      const cur = win ? acc.cur + 1 : 0;
 
-        return { cur, best: Math.max(acc.best, cur) };
-      },
-      { cur: 0, best: 0 }
-    ).best;
+      return { cur, best: Math.max(acc.best, cur) };
+    },
+    { cur: 0, best: 0 }
+  ).best;
 
-    return { avg: Math.round(avg), streak, wins, bestStreak };
-  }, [data, loggedKeys.length]);
+  return { avg: Math.round(avg), streak, wins, bestStreak };
+}, [data, loggedKeys.length]);
   
 const weightData = useMemo(() => {
   return Object.keys(data)
