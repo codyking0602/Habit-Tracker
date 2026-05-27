@@ -687,7 +687,7 @@ export default function LifeScoreboard() {
   }, [date]);
 
   const rawDay = data[date] || defaultDay();
-  const day = isPastDate(date) && !rawDay.closed ? { ...rawDay, closed: true } : rawDay;
+  const day = rawDay;
 
   const score = completionFor(day);
   const loggedKeys = Object.keys(data)   .filter((k) => shouldCountDay(k, data[k]))   .sort();
@@ -1070,7 +1070,7 @@ function updateWeight(value) {
             <section className="rounded-[1.7rem] border border-[#00B2A9]/25 bg-[#0c2528]/95 p-4">
               <div className="mb-2 flex items-center justify-between">
                 <div>
-                  <section className="mb-4 rounded-[1.7rem] border border-[#BF5700]/35 bg-[#171717]/95 p-4">
+                  <section className="mb-4 rounded-2xl border border-[#BF5700]/35 bg-[#171717]/95 p-3">
   <div className="mb-2 font-black text-[#BF5700]">Daily Weight</div>
 
   <input
@@ -1079,7 +1079,7 @@ function updateWeight(value) {
     type="number"
     inputMode="decimal"
     placeholder="Enter weight"
-    className="w-full rounded-2xl border border-[#BF5700]/30 bg-[#222222] px-4 py-3 text-lg font-black text-white outline-none"
+    className="w-full rounded-xl border border-[#BF5700]/30 bg-[#222222] px-3 py-2 text-base font-bold text-white outline-none"
   />
 </section>
                   <div className="font-black text-[#00B2A9]">Core XP</div>
@@ -1230,7 +1230,7 @@ function updateWeight(value) {
         {tab === "insights" && (
           <motion.main initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <section className="rounded-[1.7rem] border border-[#BF5700]/35 bg-[#171717]/95 p-4">
-              <section className="mb-4 rounded-[1.7rem] border border-[#BF5700]/35 bg-[#171717]/95 p-4">
+              <section className="mb-4 rounded-2xl border border-[#BF5700]/35 bg-[#171717]/95 p-3">
   <div className="font-black text-[#BF5700]">Weight Journey</div>
 
   <div className="mt-4 h-56">
