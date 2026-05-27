@@ -1071,8 +1071,8 @@ function updateWeight(value) {
 
         {tab === "today" && (
           <motion.main initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-<section className="mb-4 rounded-[1.7rem] border border-[#BF5700]/35 bg-[#171717]/95 p-4">
-  <div className="mb-2 font-black text-[#BF5700]">Daily Weight</div>
+<section className="mb-4 rounded-[1.7rem] border border-[#F05A28]/35 bg-[#171717]/95 p-4">
+  <div className="mb-2 font-black text-[#F05A28]">Daily Weight</div>
 
   <input
     value={day.weight || ""}
