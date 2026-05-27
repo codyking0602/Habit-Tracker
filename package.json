@@ -9,6 +9,7 @@
     "@vitejs/plugin-react": "latest",
     "framer-motion": "latest",
     "lucide-react": "latest",
+    "recharts": "^2.15.0",
     "react": "latest",
     "react-dom": "latest",
     "tailwindcss": "latest",
