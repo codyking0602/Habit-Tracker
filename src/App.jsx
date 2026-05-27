@@ -9,6 +9,15 @@ import {
   Sparkles,
 } from "lucide-react";
 
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
+
 const COLORS = {
   home: {
     bg: "#07111f",
