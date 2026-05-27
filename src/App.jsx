@@ -1226,24 +1226,57 @@ function updateWeight(value) {
         )}
 
         {tab === "insights" && (
-          <motion.main initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-            <section className="rounded-[1.7rem] border border-[#BF5700]/35 bg-[#171717]/95 p-4">
-              
-              <div className="font-black text-[#BF5700]">Pattern Intelligence</div>
+  <motion.main
+    initial={{ opacity: 0, y: 8 }}
+    animate={{ opacity: 1, y: 0 }}
+  >
+    <section className="mb-4 rounded-[1.7rem] border border-[#BF5700]/35 bg-[#171717]/95 p-4">
+      <div className="font-black text-[#BF5700]">Weight Journey</div>
 
-              <div className="mt-3 overflow-hidden rounded-3xl border border-[#BF5700]/30 bg-[#222222]">
-                {insights.map((x, i) => (
-                  <div
-                    key={i}
-                    className="border-b border-[#BF5700]/25 px-4 py-4 text-sm leading-6 text-slate-300 last:border-b-0"
-                  >
-                    {x}
-                  </div>
-                ))}
-              </div>
-            </section>
-          </motion.main>
+      <div className="mt-4 h-56">
+        {weightData.length >= 2 ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={weightData}>
+              <XAxis dataKey="date" stroke="#9ca3af" fontSize={11} />
+              <YAxis
+                domain={["dataMin - 2", "dataMax + 2"]}
+                stroke="#9ca3af"
+                fontSize={11}
+              />
+              <Tooltip />
+              <Line
+                type="monotone"
+                dataKey="weight"
+                stroke="#BF5700"
+                strokeWidth={3}
+                dot={{ r: 3 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="grid h-full place-items-center text-center text-sm text-slate-400">
+            Log at least 2 weigh-ins to see your trend.
+          </div>
         )}
+      </div>
+    </section>
+
+    <section className="rounded-[1.7rem] border border-[#BF5700]/35 bg-[#171717]/95 p-4">
+      <div className="font-black text-[#BF5700]">Pattern Intelligence</div>
+
+      <div className="mt-3 overflow-hidden rounded-3xl border border-[#BF5700]/30 bg-[#222222]">
+        {insights.map((x, i) => (
+          <div
+            key={i}
+            className="border-b border-[#BF5700]/25 px-4 py-4 text-sm leading-6 text-slate-300 last:border-b-0"
+          >
+            {x}
+          </div>
+        ))}
+      </div>
+    </section>
+  </motion.main>
+)}
       </div>
 
       <nav className="fixed bottom-0 left-0 right-0 border-t border-white/10 bg-[#07111f]/92 px-3 py-3 backdrop-blur-xl">
