@@ -727,11 +727,15 @@ export default function LifeScoreboard() {
 const weightData = useMemo(() => {
   return Object.keys(data)
     .sort()
-    .map((k) => ({
-      date: k.slice(5),
-      weight: Number(data[k]?.weight),
-    }))
-    .filter((x) => Number.isFinite(x.weight) && x.weight > 0);
+    .map((k) => {
+      const weight = Number(data[k]?.weight);
+
+      return {
+        date: k.slice(5),
+        weight,
+      };
+    })
+    .filter((row) => Number.isFinite(row.weight) && row.weight > 0);
 }, [data]);
   
   const insights = useMemo(() => {
@@ -1067,10 +1071,7 @@ function updateWeight(value) {
 
         {tab === "today" && (
           <motion.main initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-            <section className="rounded-[1.7rem] border border-[#00B2A9]/25 bg-[#0c2528]/95 p-4">
-              <div className="mb-2 flex items-center justify-between">
-                <div>
-                  <section className="mb-4 rounded-[1.7rem] border border-[#BF5700]/35 bg-[#171717]/95 p-4">
+<section className="mb-4 rounded-[1.7rem] border border-[#BF5700]/35 bg-[#171717]/95 p-4">
   <div className="mb-2 font-black text-[#BF5700]">Daily Weight</div>
 
   <input
@@ -1082,6 +1083,10 @@ function updateWeight(value) {
     className="w-full rounded-2xl border border-[#BF5700]/30 bg-[#222222] px-4 py-3 text-lg font-black text-white outline-none"
   />
 </section>
+            <section className="rounded-[1.7rem] border border-[#00B2A9]/25 bg-[#0c2528]/95 p-4">
+              <div className="mb-2 flex items-center justify-between">
+                <div>
+                  
                   <div className="font-black text-[#00B2A9]">Core XP</div> <div className="font-black text-[#F05A28]">
                   {score.core}/{MAX_CORE_POINTS}
                 </div>
