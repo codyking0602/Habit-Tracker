@@ -1070,28 +1070,26 @@ function updateWeight(value) {
             <section className="rounded-[1.7rem] border border-[#00B2A9]/25 bg-[#0c2528]/95 p-4">
               <div className="mb-2 flex items-center justify-between">
                 <div>
-                  <section className="mb-4 rounded-2xl border border-[#BF5700]/35 bg-[#171717]/95 p-3">
+                  <section className="mb-4 rounded-[1.7rem] border border-[#BF5700]/35 bg-[#171717]/95 p-4">
   <div className="mb-2 font-black text-[#BF5700]">Daily Weight</div>
 
   <input
     value={day.weight || ""}
-    onChange={(e) => updateWeight(e.target.value === "" ? "" : e.target.value)}
+    onChange={(e) => updateWeight(e.target.value)}
     type="number"
     inputMode="decimal"
     placeholder="Enter weight"
-    className="w-full rounded-xl border border-[#BF5700]/30 bg-[#222222] px-3 py-2 text-base font-bold text-white outline-none"
+    className="w-full rounded-2xl border border-[#BF5700]/30 bg-[#222222] px-4 py-3 text-lg font-black text-white outline-none"
   />
 </section>
-                  <div className="font-black text-[#00B2A9]">Core XP</div>
+                  <div className="font-black text-[#00B2A9]">Core XP</div> <div className="font-black text-[#F05A28]">
+                  {score.core}/{MAX_CORE_POINTS}
+                </div>
+              </div>
                   <div className="text-xs text-white/55">
                     {day.closed ? "Day Locked" : "Always Available"}
                   </div>
                 </div>
-
-                <div className="font-black text-[#F05A28]">
-                  {score.core}/{MAX_CORE_POINTS}
-                </div>
-              </div>
 
               {CORE_SECTIONS.map((section) => {
                 const habits = CORE_HABITS.filter((h) => h.group === section);
