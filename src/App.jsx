@@ -1091,9 +1091,6 @@ function updateWeight(value) {
                   {score.core}/{MAX_CORE_POINTS}
                 </div>
               </div>
-                  <div className="text-xs text-white/55">
-                    {day.closed ? "Day Locked" : "Always Available"}
-                  </div>
                 </div>
 
               {CORE_SECTIONS.map((section) => {
