@@ -216,7 +216,7 @@ function monthLabel(month) {
 }
 
 function defaultDay() {
-  return { core: {}, bonus: {}, closed: false };
+  return { core: {}, bonus: {}, closed: false, weight: "" };
 }
 
 function isPastDate(dateKey) {
@@ -644,6 +644,11 @@ function MonthlyBar({ month }) {
   );
 }
 
+function average(numbers) {
+  if (!numbers.length) return 0;
+  return numbers.reduce((a, b) => a + b, 0) / numbers.length;
+}
+
 export default function LifeScoreboard() {
   const [date, setDate] = useState(todayKey());
   const [tab, setTab] = useState("home");
@@ -718,7 +723,17 @@ export default function LifeScoreboard() {
 
     return { avg: Math.round(avg), streak, wins, bestStreak };
   }, [data, loggedKeys.length]);
-
+  
+const weightData = useMemo(() => {
+  return Object.keys(data)
+    .sort()
+    .filter((k) => data[k]?.weight)
+    .map((k) => ({
+      date: k.slice(5),
+      weight: Number(data[k].weight),
+    }));
+}, [data]);
+  
   const insights = useMemo(() => {
     if (!loggedKeys.length) return ["No Pattern Yet. Log A Few Days First."];
 
@@ -773,7 +788,14 @@ export default function LifeScoreboard() {
     const months = [   ...new Set(     Object.keys(data)       .filter((k) => shouldCountDay(k, data[k]))       .map(monthKey)   ), ]   .sort()   .reverse();
     return months.map((m) => monthlyStats(data, m));
   }, [data]);
-
+  
+function updateWeight(value) {
+  updateDay((d) => ({
+    ...d,
+    weight: value,
+  }));
+}
+  
   function updateDay(updater) {
     setData((prev) => {
       const current = prev[date] || defaultDay();
@@ -1048,6 +1070,18 @@ export default function LifeScoreboard() {
             <section className="rounded-[1.7rem] border border-[#00B2A9]/25 bg-[#0c2528]/95 p-4">
               <div className="mb-2 flex items-center justify-between">
                 <div>
+                  <section className="mb-4 rounded-[1.7rem] border border-[#BF5700]/35 bg-[#171717]/95 p-4">
+  <div className="mb-2 font-black text-[#BF5700]">Daily Weight</div>
+
+  <input
+    value={day.weight || ""}
+    onChange={(e) => updateWeight(e.target.value)}
+    type="number"
+    inputMode="decimal"
+    placeholder="Enter weight"
+    className="w-full rounded-2xl border border-[#BF5700]/30 bg-[#222222] px-4 py-3 text-lg font-black text-white outline-none"
+  />
+</section>
                   <div className="font-black text-[#00B2A9]">Core XP</div>
                   <div className="text-xs text-white/55">
                     {day.closed ? "Day Locked" : "Always Available"}
@@ -1196,6 +1230,32 @@ export default function LifeScoreboard() {
         {tab === "insights" && (
           <motion.main initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <section className="rounded-[1.7rem] border border-[#BF5700]/35 bg-[#171717]/95 p-4">
+              <section className="mb-4 rounded-[1.7rem] border border-[#BF5700]/35 bg-[#171717]/95 p-4">
+  <div className="font-black text-[#BF5700]">Weight Journey</div>
+
+  <div className="mt-4 h-56">
+    {weightData.length >= 2 ? (
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={weightData}>
+          <XAxis dataKey="date" stroke="#9ca3af" fontSize={11} />
+          <YAxis domain={["dataMin - 2", "dataMax + 2"]} stroke="#9ca3af" fontSize={11} />
+          <Tooltip />
+          <Line
+            type="monotone"
+            dataKey="weight"
+            stroke="#BF5700"
+            strokeWidth={3}
+            dot={{ r: 3 }}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    ) : (
+      <div className="grid h-full place-items-center text-sm text-slate-400">
+        Log at least 2 weigh-ins to see your trend.
+      </div>
+    )}
+  </div>
+</section>
               <div className="font-black text-[#BF5700]">Pattern Intelligence</div>
 
               <div className="mt-3 overflow-hidden rounded-3xl border border-[#BF5700]/30 bg-[#222222]">
