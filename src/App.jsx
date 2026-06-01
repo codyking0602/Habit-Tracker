@@ -785,6 +785,8 @@ export default function LifeScoreboard() {
   const [burst, setBurst] = useState(null);
   const [tierPopup, setTierPopup] = useState(null);
   const [triggeredTiers, setTriggeredTiers] = useState([]);
+  const [backupText, setBackupText] = useState("");
+const [backupMessage, setBackupMessage] = useState("");
 
   useEffect(() => {
     try {
@@ -936,6 +938,28 @@ function updateWeight(value) {
     });
   }
 
+  function exportData() {
+  const raw = localStorage.getItem(STORAGE_KEY) || "{}";
+  setBackupText(raw);
+  setBackupMessage("Data exported. Copy the box below.");
+
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(raw).catch(() => {});
+  }
+}
+
+function importData() {
+  try {
+    const parsed = JSON.parse(backupText);
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+    setData(parsed);
+    setBackupMessage("Data imported successfully.");
+  } catch {
+    setBackupMessage("Import failed. Make sure you pasted the full export text.");
+  }
+}
+  
   function toggleCore(habit) {
     if (day.closed) return;
 
@@ -1360,6 +1384,41 @@ function updateWeight(value) {
     <section className="rounded-[1.7rem] border border-[#BF5700]/35 bg-[#171717]/95 p-4">
       <div className="font-black text-[#BF5700]">Pattern Intelligence</div>
 
+      <section className="mt-4 rounded-[1.7rem] border border-[#BF5700]/35 bg-[#171717]/95 p-4">
+  <div className="font-black text-[#BF5700]">Backup / Restore</div>
+
+  <div className="mt-3 grid grid-cols-2 gap-2">
+    <button
+      type="button"
+      onClick={exportData}
+      className="rounded-2xl border border-[#BF5700]/30 bg-[#222222] px-4 py-3 text-sm font-black text-[#BF5700]"
+    >
+      Export Data
+    </button>
+
+    <button
+      type="button"
+      onClick={importData}
+      className="rounded-2xl border border-emerald-400/30 bg-[#123026] px-4 py-3 text-sm font-black text-emerald-300"
+    >
+      Import Data
+    </button>
+  </div>
+
+  <textarea
+    value={backupText}
+    onChange={(e) => setBackupText(e.target.value)}
+    placeholder="Exported data will appear here. Paste data here to restore."
+    className="mt-3 h-32 w-full rounded-2xl border border-[#BF5700]/25 bg-[#0f0f0f] p-3 text-xs text-slate-200 outline-none"
+  />
+
+  {backupMessage && (
+    <div className="mt-2 text-xs font-bold text-slate-400">
+      {backupMessage}
+    </div>
+  )}
+</section>
+      
       <div className="mt-3 overflow-hidden rounded-3xl border border-[#BF5700]/30 bg-[#222222]">
         {insights.map((x, i) => (
           <div
