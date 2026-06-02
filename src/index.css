@@ -15,3 +15,18 @@ body {
 * {
   box-sizing: border-box;
 }
+
+/* Move Backup / Restore below the Pattern Intelligence cards on the Intel tab. */
+section:has(> section textarea[placeholder*="Exported data"]) {
+  display: flex;
+  flex-direction: column;
+}
+
+section:has(> section textarea[placeholder*="Exported data"]) > div.mt-3 {
+  order: 2;
+}
+
+section:has(> section textarea[placeholder*="Exported data"]) > section:has(textarea[placeholder*="Exported data"]) {
+  order: 3;
+  margin-top: 1rem;
+}
